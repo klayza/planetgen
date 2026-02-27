@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "units": "inches",
+    "version": "mvp_v2"
+  },
+
+  "TREADMILL": {
+    "category": "cardio_powered",
+    "footprint": { "w": 36, "d": 80 },
+    "clearance": { "front": 36, "back": 12, "left": 6, "right": 6 },
+    "requires_raceway": true,
+    "default_orientation": "north"
+  },
+
+  "CLIMBMILL": {
+    "category": "cardio_powered",
+    "footprint": { "w": 36, "d": 65 },
+    "clearance": { "front": 36, "back": 12, "left": 6, "right": 6 },
+    "requires_raceway": true,
+    "default_orientation": "north"
+  },
+
+  "ARC_TRAINER_LOW": {
+    "category": "cardio_powered",
+    "footprint": { "w": 30, "d": 70 },
+    "clearance": { "front": 30, "back": 12, "left": 6, "right": 6 },
+    "requires_raceway": true,
+    "default_orientation": "north"
+  },
+
+  "ELLIPTICAL": {
+    "category": "cardio_powered",
+    "footprint": { "w": 30, "d": 70 },
+    "clearance": { "front": 30, "back": 12, "left": 6, "right": 6 },
+    "requires_raceway": true,
+    "default_orientation": "north"
+  },
+
+  "ROWER": {
+    "category": "cardio_nonpowered",
+    "footprint": { "w": 24, "d": 96 },
+    "clearance": { "front": 24, "back": 24, "left": 6, "right": 6 },
+    "requires_raceway": false,
+    "default_orientation": "north"
+  },
+
+  "UPRIGHT_CYCLE": {
+    "category": "cardio_powered",
+    "footprint": { "w": 24, "d": 48 },
+    "clearance": { "front": 24, "back": 12, "left": 6, "right": 6 },
+    "requires_raceway": true,
+    "default_orientation": "north"
+  },
+
+  "INDOOR_CYCLE": {
+    "category": "cardio_nonpowered",
+    "footprint": { "w": 24, "d": 48 },
+    "clearance": { "front": 24, "back": 12, "left": 6, "right": 6 },
+    "requires_raceway": false,
+    "default_orientation": "north"
+  },
+
+  "RACEWAY": {
+    "category": "utility",
+    "footprint": { "w": 41, "d": 7 },
+    "clearance": { "front": 0, "back": 0, "left": 0, "right": 0 },
+    "place_relative_to": "front_of_machine",
+    "orientation": "parallel_to_machine_width"
+  }
+}

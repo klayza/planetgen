@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planetgen Layout Workbench</title>
+  <style>
+    :root {
+      --bg: #f6efe3;
+      --bg-accent: #e9dcc7;
+      --panel: #fffaf2;
+      --panel-strong: #f5ead9;
+      --ink: #1f2327;
+      --ink-muted: #4e5560;
+      --line: #c8bca9;
+      --action: #0f6d63;
+      --action-ink: #f0fbf9;
+      --warning: #9d3a00;
+      --ok: #2f7e2f;
+      --mono: "Consolas", "Courier New", monospace;
+      --sans: "Bahnschrift", "Trebuchet MS", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 10%, #fff8ea 0%, transparent 40%),
+        radial-gradient(circle at 80% 0%, #ead9c0 0%, transparent 44%),
+        linear-gradient(160deg, var(--bg) 0%, var(--bg-accent) 100%);
+      min-height: 100vh;
+    }
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(420px, 540px) minmax(620px, 1fr);
+      gap: 14px;
+      padding: 14px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 8px 26px rgba(40, 35, 26, 0.07);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 10px 12px;
+      background: var(--panel-strong);
+      border-bottom: 1px solid var(--line);
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .panel-body {
+      padding: 10px 12px;
+    }
+    .section { margin-bottom: 12px; }
+    .section:last-child { margin-bottom: 0; }
+    .section-title {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    label { display: block; font-size: 0.82rem; color: var(--ink-muted); }
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 8px;
+      background: white;
+      font-family: var(--sans);
+      color: var(--ink);
+      margin-top: 4px;
+    }
+    input[type="checkbox"] { transform: translateY(1px); }
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--ink-muted);
+      margin-top: 6px;
+    }
+    .controls-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 8px 11px;
+      cursor: pointer;
+      font-family: var(--sans);
+      font-weight: 700;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: var(--action);
+      color: var(--action-ink);
+    }
+    .btn-secondary {
+      background: #ece7dd;
+      border-color: var(--line);
+      color: var(--ink);
+    }
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .mini-table th, .mini-table td {
+      border: 1px solid #dfd5c6;
+      padding: 5px 6px;
+      text-align: left;
+    }
+    .mini-table th {
+      background: #f3e9d8;
+      font-size: 0.77rem;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      color: #5f5748;
+    }
+    .count-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) 86px 86px;
+      gap: 6px;
+      align-items: end;
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #e1d8c9;
+    }
+    .count-row:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .count-name {
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      font-weight: 700;
+      padding-bottom: 7px;
+    }
+    details {
+      border: 1px solid #dfd5c6;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      background: #fffdf8;
+      overflow: hidden;
+    }
+    summary {
+      list-style: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 8px;
+      background: #f9f2e7;
+      border-bottom: 1px solid #dfd5c6;
+    }
+    summary::-webkit-details-marker { display: none; }
+    .detail-grid {
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .right-column {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+      min-height: 0;
+    }
+    .canvas-wrap {
+      padding: 10px;
+    }
+    #canvas {
+      width: 100%;
+      height: auto;
+      background: #fcfbf8;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      display: block;
+    }
+    .debug-grid {
+      display: grid;
+      gap: 10px;
+      max-height: calc(100vh - 480px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .card {
+      border: 1px solid #dfd5c6;
+      border-radius: 8px;
+      background: #fffdf8;
+      padding: 8px;
+      min-height: 70px;
+    }
+    .card .k {
+      font-size: 0.72rem;
+      color: #6f6657;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .card .v {
+      font-size: 1.18rem;
+      font-weight: 700;
+      margin-top: 3px;
+    }
+    .mono {
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      background: #f4ede1;
+      border: 1px solid #ddcfbb;
+      border-radius: 8px;
+      padding: 8px;
+      overflow: auto;
+      max-height: 220px;
+      white-space: pre-wrap;
+      margin: 0;
+    }
+    .status-ok { color: var(--ok); font-weight: 700; }
+    .status-warn { color: var(--warning); font-weight: 700; }
+    @media (max-width: 1280px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .debug-grid { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel">
+      <div class="panel-header">Layout Controls</div>
+      <div class="panel-body">
+        <div class="section">
+          <p class="section-title">Gym</p>
+          <div class="grid-2">
+            <label>Width (in)<input id="gymW" type="number" min="1" step="1"></label>
+            <label>Depth (in)<input id="gymD" type="number" min="1" step="1"></label>
+          </div>
+        </div>
+
+        <div class="section">
+          <p class="section-title">Counts and Priority</p>
+          <div id="countControls"></div>
+        </div>
+
+        <div class="section">
+          <p class="section-title">Placement Rules</p>
+          <div class="grid-2">
+            <label>Machines per block<input id="rowCap" type="number" min="1" step="1"></label>
+            <label>Aisle gap (in)<input id="aisleGap" type="number" min="0" step="1"></label>
+            <label>Full-row trigger<input id="fullRowTrigger" type="number" min="1" step="1"></label>
+            <label>Side margin (in)<input id="sideMargin" type="number" min="0" step="1"></label>
+            <label>Front margin (in)<input id="frontMargin" type="number" min="0" step="1"></label>
+          </div>
+          <label class="check-row"><input id="alignAislesAcrossRows" type="checkbox">Align aisle positions across lower rows when possible</label>
+          <label class="check-row"><input id="enforceCollisions" type="checkbox">Enforce collision checks</label>
+        </div>
+
+        <div class="section">
+          <p class="section-title">Render and Debug</p>
+          <div class="grid-3">
+            <label class="check-row"><input id="showOccupied" type="checkbox" checked>Occupied</label>
+            <label class="check-row"><input id="showMachine" type="checkbox" checked>Machine</label>
+            <label class="check-row"><input id="showRaceway" type="checkbox" checked>Raceway</label>
+            <label class="check-row"><input id="showLabels" type="checkbox">Type labels</label>
+            <label class="check-row"><input id="showGrid" type="checkbox">Grid overlay</label>
+            <label class="check-row"><input id="includeDebug" type="checkbox" checked>API debug</label>
+          </div>
+        </div>
+
+        <div class="section">
+          <p class="section-title">Equipment Specs</p>
+          <div id="equipmentControls"></div>
+        </div>
+
+        <div class="controls-actions">
+          <button class="btn-primary" id="generateBtn">Generate Layout</button>
+          <button class="btn-secondary" id="resetBtn">Reset Defaults</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="right-column">
+      <div class="panel canvas-wrap">
+        <canvas id="canvas" width="1100" height="640"></canvas>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Debug Output</div>
+        <div class="panel-body debug-grid">
+          <div class="summary-cards" id="summaryCards"></div>
+
+          <div>
+            <p class="section-title">By Type</p>
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Requested</th>
+                  <th>Placed</th>
+                  <th>Unplaced</th>
+                </tr>
+              </thead>
+              <tbody id="byTypeBody"></tbody>
+            </table>
+          </div>
+
+          <div>
+            <p class="section-title">Row Attempts</p>
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Req</th>
+                  <th>Target</th>
+                  <th>Placed</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody id="rowsBody"></tbody>
+            </table>
+          </div>
+
+          <div>
+            <p class="section-title">Raw Debug JSON</p>
+            <pre class="mono" id="rawDebug"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const EQUIPMENT = {{ equipment | tojson }};
+    const DEFAULT_COUNTS = {{ default_counts | tojson }};
+    const DEFAULT_TYPE_ORDER = {{ default_type_order | tojson }};
+    const DEFAULT_PLACEMENT = {{ default_placement | tojson }};
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let latestResult = null;
+
+    function getEquipmentTypes() {
+      return DEFAULT_TYPE_ORDER.filter((name) => Object.prototype.hasOwnProperty.call(EQUIPMENT, name));
+    }
+
+    function createInput(labelText, value, type = "number", extra = {}) {
+      const label = document.createElement("label");
+      label.textContent = labelText;
+      const input = document.createElement("input");
+      input.type = type;
+      if (type === "number") {
+        input.step = extra.step || "1";
+        if (extra.min !== undefined) input.min = extra.min;
+      }
+      input.value = value;
+      if (extra.dataset) {
+        Object.entries(extra.dataset).forEach(([k, v]) => {
+          input.dataset[k] = v;
+        });
+      }
+      label.appendChild(input);
+      return { label, input };
+    }
+
+    function renderCountControls() {
+      const wrap = document.getElementById("countControls");
+      wrap.innerHTML = "";
+      getEquipmentTypes().forEach((name, index) => {
+        const row = document.createElement("div");
+        row.className = "count-row";
+
+        const title = document.createElement("div");
+        title.className = "count-name";
+        title.textContent = name;
+
+        const countInput = createInput("Count", DEFAULT_COUNTS[name] ?? 0, "number", {
+          min: 0,
+          dataset: { role: "count", eqName: name },
+        });
+        const orderInput = createInput("Order", index + 1, "number", {
+          min: 1,
+          dataset: { role: "order", eqName: name },
+        });
+
+        row.appendChild(title);
+        row.appendChild(countInput.label);
+        row.appendChild(orderInput.label);
+        wrap.appendChild(row);
+      });
+    }
+
+    function renderEquipmentControls() {
+      const wrap = document.getElementById("equipmentControls");
+      wrap.innerHTML = "";
+      const names = [...getEquipmentTypes(), "RACEWAY"];
+      names.forEach((name) => {
+        const spec = EQUIPMENT[name];
+        if (!spec) return;
+
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = name;
+        details.appendChild(summary);
+
+        const body = document.createElement("div");
+        body.className = "detail-grid";
+
+        if (spec.footprint) {
+          const w = createInput("Footprint W", spec.footprint.w, "number", {
+            min: 0,
+            dataset: { role: "eq", eqName: name, group: "footprint", key: "w" },
+          });
+          const d = createInput("Footprint D", spec.footprint.d, "number", {
+            min: 0,
+            dataset: { role: "eq", eqName: name, group: "footprint", key: "d" },
+          });
+          body.appendChild(w.label);
+          body.appendChild(d.label);
+        }
+
+        if (spec.clearance) {
+          ["front", "back", "left", "right"].forEach((key) => {
+            if (spec.clearance[key] === undefined) return;
+            const control = createInput(`Clearance ${key}`, spec.clearance[key], "number", {
+              min: 0,
+              dataset: { role: "eq", eqName: name, group: "clearance", key },
+            });
+            body.appendChild(control.label);
+          });
+        }
+
+        if (name !== "RACEWAY" && spec.requires_raceway !== undefined) {
+          const checkLabel = document.createElement("label");
+          checkLabel.className = "check-row";
+          checkLabel.style.gridColumn = "span 2";
+          const box = document.createElement("input");
+          box.type = "checkbox";
+          box.checked = !!spec.requires_raceway;
+          box.dataset.role = "eqCheck";
+          box.dataset.eqName = name;
+          box.dataset.key = "requires_raceway";
+          checkLabel.appendChild(box);
+          checkLabel.appendChild(document.createTextNode("Requires raceway"));
+          body.appendChild(checkLabel);
+        }
+
+        details.appendChild(body);
+        wrap.appendChild(details);
+      });
+    }
+
+    function readNumericInput(id, fallback) {
+      const value = parseFloat(document.getElementById(id).value);
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function collectCountsAndOrder() {
+      const counts = {};
+      const orders = [];
+
+      document.querySelectorAll('input[data-role="count"]').forEach((input) => {
+        const n = parseInt(input.value, 10);
+        counts[input.dataset.eqName] = Number.isFinite(n) ? Math.max(0, n) : 0;
+      });
+
+      document.querySelectorAll('input[data-role="order"]').forEach((input) => {
+        const order = parseInt(input.value, 10);
+        orders.push({
+          eqName: input.dataset.eqName,
+          order: Number.isFinite(order) ? Math.max(1, order) : 999,
+        });
+      });
+
+      orders.sort((a, b) => a.order - b.order || a.eqName.localeCompare(b.eqName));
+      return { counts, typeOrder: orders.map((o) => o.eqName) };
+    }
+
+    function collectEquipmentOverrides() {
+      const overrides = {};
+
+      document.querySelectorAll('input[data-role="eq"]').forEach((input) => {
+        const eqName = input.dataset.eqName;
+        const group = input.dataset.group;
+        const key = input.dataset.key;
+        const value = parseFloat(input.value);
+        if (!Number.isFinite(value)) return;
+
+        if (!overrides[eqName]) overrides[eqName] = {};
+        if (!overrides[eqName][group]) overrides[eqName][group] = {};
+        overrides[eqName][group][key] = Math.max(0, value);
+      });
+
+      document.querySelectorAll('input[data-role="eqCheck"]').forEach((input) => {
+        const eqName = input.dataset.eqName;
+        const key = input.dataset.key;
+        if (!overrides[eqName]) overrides[eqName] = {};
+        overrides[eqName][key] = input.checked;
+      });
+
+      return overrides;
+    }
+
+    function collectPlacement() {
+      return {
+        row_cap: Math.max(1, Math.floor(readNumericInput("rowCap", DEFAULT_PLACEMENT.row_cap))),
+        aisle_gap: Math.max(0, readNumericInput("aisleGap", DEFAULT_PLACEMENT.aisle_gap ?? 36)),
+        align_aisles_across_rows: document.getElementById("alignAislesAcrossRows").checked,
+        full_row_trigger: Math.max(1, Math.floor(readNumericInput("fullRowTrigger", DEFAULT_PLACEMENT.full_row_trigger))),
+        full_row_side_margin: Math.max(0, readNumericInput("sideMargin", DEFAULT_PLACEMENT.full_row_side_margin)),
+        full_row_front_margin: Math.max(0, readNumericInput("frontMargin", DEFAULT_PLACEMENT.full_row_front_margin)),
+        enforce_collisions: document.getElementById("enforceCollisions").checked,
+      };
+    }
+
+    function getRenderSettings() {
+      return {
+        showOccupied: document.getElementById("showOccupied").checked,
+        showMachine: document.getElementById("showMachine").checked,
+        showRaceway: document.getElementById("showRaceway").checked,
+        showLabels: document.getElementById("showLabels").checked,
+        showGrid: document.getElementById("showGrid").checked,
+      };
+    }
+
+    function colorForType(type) {
+      const palette = {
+        TREADMILL: "#225ea8",
+        CLIMBMILL: "#41ab5d",
+        ARC_TRAINER_LOW: "#ff7f00",
+        ELLIPTICAL: "#6a3d9a",
+        UPRIGHT_CYCLE: "#b15928",
+        ROWER: "#d95f0e",
+        INDOOR_CYCLE: "#1b9e77",
+      };
+      return palette[type] || "#4e5560";
+    }
+
+    function draw(result) {
+      latestResult = result;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!result || !result.gym) return;
+
+      const { showOccupied, showMachine, showRaceway, showLabels, showGrid } = getRenderSettings();
+      const W = result.gym.w;
+      const D = result.gym.d;
+      const pad = 24;
+      const scale = Math.min((canvas.width - pad * 2) / W, (canvas.height - pad * 2) / D);
+      const drawW = W * scale;
+      const drawD = D * scale;
+      const ox = (canvas.width - drawW) / 2;
+      const oy = (canvas.height - drawD) / 2;
+
+      const toCanvas = (rect) => ({
+        x: ox + rect.x * scale,
+        y: oy + drawD - (rect.y + rect.d) * scale,
+        w: rect.w * scale,
+        h: rect.d * scale,
+      });
+
+      if (showGrid) {
+        ctx.save();
+        ctx.strokeStyle = "#ece1cf";
+        ctx.lineWidth = 1;
+        const step = 120;
+        for (let gx = 0; gx <= W; gx += step) {
+          const x = ox + gx * scale;
+          ctx.beginPath();
+          ctx.moveTo(x, oy);
+          ctx.lineTo(x, oy + drawD);
+          ctx.stroke();
+        }
+        for (let gy = 0; gy <= D; gy += step) {
+          const y = oy + drawD - gy * scale;
+          ctx.beginPath();
+          ctx.moveTo(ox, y);
+          ctx.lineTo(ox + drawW, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#2a2f32";
+      ctx.strokeRect(ox, oy, drawW, drawD);
+      ctx.restore();
+
+      (result.placed || []).forEach((item) => {
+        const color = colorForType(item.type);
+        if (showOccupied && item.occupied) {
+          const r = toCanvas(item.occupied);
+          ctx.save();
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = color;
+          ctx.fillRect(r.x, r.y, r.w, r.h);
+          ctx.restore();
+        }
+        if (showMachine && item.machine) {
+          const r = toCanvas(item.machine);
+          ctx.save();
+          ctx.globalAlpha = 0.68;
+          ctx.fillStyle = color;
+          ctx.fillRect(r.x, r.y, r.w, r.h);
+          ctx.restore();
+        }
+        if (showRaceway && item.raceway) {
+          const r = toCanvas(item.raceway);
+          ctx.save();
+          ctx.globalAlpha = 0.9;
+          ctx.fillStyle = "#101417";
+          ctx.fillRect(r.x, r.y, r.w, r.h);
+          ctx.restore();
+        }
+        if (showLabels && item.machine) {
+          const r = toCanvas(item.machine);
+          ctx.save();
+          ctx.fillStyle = "#111";
+          ctx.font = "11px Consolas";
+          ctx.fillText(item.type, r.x + 2, r.y + 12);
+          ctx.restore();
+        }
+      });
+    }
+
+    function setSummaryCards(result) {
+      const cards = document.getElementById("summaryCards");
+      cards.innerHTML = "";
+      const summary = result?.debug?.summary || {};
+      const items = [
+        { key: "Requested", value: summary.requested_total ?? 0 },
+        { key: "Placed", value: summary.placed_total ?? 0 },
+        { key: "Unplaced", value: summary.unplaced_total ?? 0 },
+        { key: "Rows Attempted", value: summary.rows_attempted ?? 0 },
+        { key: "Rows Successful", value: summary.rows_successful ?? 0 },
+        { key: "Occupancy", value: `${(((summary.occupancy_ratio ?? 0) * 100).toFixed(1))}%` },
+      ];
+      items.forEach((item) => {
+        const div = document.createElement("div");
+        div.className = "card";
+        const k = document.createElement("div");
+        k.className = "k";
+        k.textContent = item.key;
+        const v = document.createElement("div");
+        v.className = "v";
+        const isWarn = item.key === "Unplaced" && Number(item.value) > 0;
+        v.className = `v ${isWarn ? "status-warn" : "status-ok"}`;
+        v.textContent = item.value;
+        div.appendChild(k);
+        div.appendChild(v);
+        cards.appendChild(div);
+      });
+    }
+
+    function setTypeTable(result) {
+      const body = document.getElementById("byTypeBody");
+      body.innerHTML = "";
+      const rows = result?.debug?.by_type || [];
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.equipment}</td>
+          <td>${row.requested}</td>
+          <td>${row.placed}</td>
+          <td class="${row.unplaced > 0 ? "status-warn" : "status-ok"}">${row.unplaced}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function setRowsTable(result) {
+      const body = document.getElementById("rowsBody");
+      body.innerHTML = "";
+      const rows = result?.debug?.rows || [];
+      rows.slice(0, 120).forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.equipment}</td>
+          <td>${row.requested}</td>
+          <td>${row.target_items ?? 0}</td>
+          <td>${row.placed ?? 0}</td>
+          <td>${row.reason || ""}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function setRawDebug(result) {
+      const out = document.getElementById("rawDebug");
+      out.textContent = JSON.stringify(
+        {
+          input: result?.input,
+          unplaced: result?.unplaced,
+          debug: result?.debug,
+        },
+        null,
+        2
+      );
+    }
+
+    async function run() {
+      const { counts, typeOrder } = collectCountsAndOrder();
+      const body = {
+        w: Math.max(1, readNumericInput("gymW", 2400)),
+        d: Math.max(1, readNumericInput("gymD", 1800)),
+        counts,
+        type_order: typeOrder,
+        placement: collectPlacement(),
+        equipment_overrides: collectEquipmentOverrides(),
+        include_debug: document.getElementById("includeDebug").checked,
+      };
+
+      const res = await fetch("/api/layout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      draw(json);
+      setSummaryCards(json);
+      setTypeTable(json);
+      setRowsTable(json);
+      setRawDebug(json);
+    }
+
+    function resetDefaults() {
+      document.getElementById("gymW").value = 2400;
+      document.getElementById("gymD").value = 1800;
+      document.getElementById("rowCap").value = DEFAULT_PLACEMENT.row_cap;
+      document.getElementById("aisleGap").value = DEFAULT_PLACEMENT.aisle_gap ?? 36;
+      document.getElementById("fullRowTrigger").value = DEFAULT_PLACEMENT.full_row_trigger;
+      document.getElementById("sideMargin").value = DEFAULT_PLACEMENT.full_row_side_margin;
+      document.getElementById("frontMargin").value = DEFAULT_PLACEMENT.full_row_front_margin;
+      document.getElementById("alignAislesAcrossRows").checked = DEFAULT_PLACEMENT.align_aisles_across_rows ?? true;
+      document.getElementById("enforceCollisions").checked = DEFAULT_PLACEMENT.enforce_collisions;
+      document.getElementById("showOccupied").checked = true;
+      document.getElementById("showMachine").checked = true;
+      document.getElementById("showRaceway").checked = true;
+      document.getElementById("showLabels").checked = false;
+      document.getElementById("showGrid").checked = false;
+      document.getElementById("includeDebug").checked = true;
+      renderCountControls();
+      renderEquipmentControls();
+      run();
+    }
+
+    function wireEvents() {
+      document.getElementById("generateBtn").addEventListener("click", run);
+      document.getElementById("resetBtn").addEventListener("click", resetDefaults);
+      ["showOccupied", "showMachine", "showRaceway", "showLabels", "showGrid"].forEach((id) => {
+        document.getElementById(id).addEventListener("change", () => {
+          if (latestResult) draw(latestResult);
+        });
+      });
+    }
+
+    function init() {
+      document.getElementById("gymW").value = 2400;
+      document.getElementById("gymD").value = 1800;
+      document.getElementById("rowCap").value = DEFAULT_PLACEMENT.row_cap;
+      document.getElementById("aisleGap").value = DEFAULT_PLACEMENT.aisle_gap ?? 36;
+      document.getElementById("fullRowTrigger").value = DEFAULT_PLACEMENT.full_row_trigger;
+      document.getElementById("sideMargin").value = DEFAULT_PLACEMENT.full_row_side_margin;
+      document.getElementById("frontMargin").value = DEFAULT_PLACEMENT.full_row_front_margin;
+      document.getElementById("alignAislesAcrossRows").checked = DEFAULT_PLACEMENT.align_aisles_across_rows ?? true;
+      document.getElementById("enforceCollisions").checked = DEFAULT_PLACEMENT.enforce_collisions;
+      renderCountControls();
+      renderEquipmentControls();
+      wireEvents();
+      run();
+    }
+
+    init();
+  </script>
+</body>
+</html>
