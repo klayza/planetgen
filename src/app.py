@@ -36,6 +36,7 @@ DEFAULT_PLACEMENT_OPTIONS = {
     "full_row_trigger": 17,
     "full_row_side_margin": 36.0,
     "full_row_front_margin": 36.0,
+    "full_row_back_aisle": 36.0,
     "enforce_collisions": True,
 }
 
@@ -107,6 +108,7 @@ def _sanitize_placement(raw_placement) -> dict:
         "full_row_trigger": _int_or_default(raw_placement.get("full_row_trigger"), DEFAULT_PLACEMENT_OPTIONS["full_row_trigger"], minimum=1),
         "full_row_side_margin": _float_or_default(raw_placement.get("full_row_side_margin"), DEFAULT_PLACEMENT_OPTIONS["full_row_side_margin"], minimum=0.0),
         "full_row_front_margin": _float_or_default(raw_placement.get("full_row_front_margin"), DEFAULT_PLACEMENT_OPTIONS["full_row_front_margin"], minimum=0.0),
+        "full_row_back_aisle": _float_or_default(raw_placement.get("full_row_back_aisle"), DEFAULT_PLACEMENT_OPTIONS["full_row_back_aisle"], minimum=0.0),
         "enforce_collisions": _bool_or_default(raw_placement.get("enforce_collisions"), DEFAULT_PLACEMENT_OPTIONS["enforce_collisions"]),
     }
 

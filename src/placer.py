@@ -35,6 +35,7 @@ class PlacementOptions:
     full_row_trigger: int = 17
     full_row_side_margin: float = 36.0
     full_row_front_margin: float = 36.0
+    full_row_back_aisle: float = 36.0
     enforce_collisions: bool = True
 
 
@@ -77,6 +78,7 @@ def parse_placement_options(raw: Optional[Dict[str, Any]]) -> PlacementOptions:
         full_row_trigger=_to_int(raw.get("full_row_trigger"), fallback=17, minimum=1),
         full_row_side_margin=_to_float(raw.get("full_row_side_margin"), fallback=36.0, minimum=0.0),
         full_row_front_margin=_to_float(raw.get("full_row_front_margin"), fallback=36.0, minimum=0.0),
+        full_row_back_aisle=_to_float(raw.get("full_row_back_aisle"), fallback=36.0, minimum=0.0),
         enforce_collisions=_to_bool(raw.get("enforce_collisions"), fallback=True),
     )
 
@@ -161,6 +163,7 @@ def place_layout(
             "requested": int(sum(snapshot_remaining.values())),
             "row_cap_config": opts.row_cap,
             "aisle_gap_config": opts.aisle_gap,
+            "full_row_back_aisle_config": opts.full_row_back_aisle,
             "y_cursor_start": y_cursor,
             "row_ref_y": row_ref_y,
             "raceway": {"w": raceway_w, "d": raceway_d},
@@ -217,6 +220,7 @@ def place_layout(
         cursor_x = side_margin
         right_limit = W - side_margin
         row_depth_with_clearance = 0.0
+        full_row_back_aisle = opts.full_row_back_aisle if full_row else 0.0
         stop_reason = "all_items_placed"
         placed_since_aisle = 0
         used_aisles: List[Tuple[float, float]] = []
@@ -284,12 +288,13 @@ def place_layout(
                     failures.append("no_width")
                     continue
 
-                occ_y = row_ref_y - raceway_d - spec["fp_d"]
-                row_bottom = row_ref_y - raceway_d - spec["fp_d"] - spec["cl_b"]
+                proposed_row_depth = max(row_depth_with_clearance, spec["fp_d"] + spec["cl_b"])
+                row_bottom = row_ref_y - raceway_d - proposed_row_depth - full_row_back_aisle
                 if row_bottom < -1e-9:
                     failures.append("insufficient_depth")
                     continue
 
+                occ_y = row_ref_y - raceway_d - spec["fp_d"]
                 machine_x = cursor_x + (slot_w - spec["fp_w"]) / 2.0
                 machine_rect = Rect(machine_x, occ_y, spec["fp_w"], spec["fp_d"])
                 if spec["powered"]:
@@ -393,8 +398,9 @@ def place_layout(
                 "aisle_bands_generated": generated_aisles,
             }
 
-        new_y = row_ref_y - raceway_d - row_depth_with_clearance
+        new_y = row_ref_y - raceway_d - row_depth_with_clearance - full_row_back_aisle
         attempt["row_bottom_with_back_clearance"] = new_y
+        attempt["full_row_back_aisle_applied"] = full_row_back_aisle
         attempt["y_cursor_end"] = new_y
         return {
             "attempt": attempt,

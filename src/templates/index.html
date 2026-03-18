@@ -274,6 +274,7 @@
             <label>Full-row trigger<input id="fullRowTrigger" type="number" min="1" step="1"></label>
             <label>Side margin (in)<input id="sideMargin" type="number" min="0" step="1"></label>
             <label>Front margin (in)<input id="frontMargin" type="number" min="0" step="1"></label>
+            <label>Full-row back aisle (in)<input id="backAisle" type="number" min="0" step="1"></label>
           </div>
           <label class="check-row"><input id="alignAislesAcrossRows" type="checkbox">Align aisle positions across lower rows when possible</label>
           <label class="check-row"><input id="enforceCollisions" type="checkbox">Enforce collision checks</label>
@@ -362,6 +363,8 @@
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     let latestResult = null;
+    let autoRunTimer = null;
+    const AUTO_RUN_DELAY_MS = 250;
 
     function getEquipmentTypes() {
       return DEFAULT_TYPE_ORDER.filter((name) => Object.prototype.hasOwnProperty.call(EQUIPMENT, name));
@@ -532,8 +535,16 @@
         full_row_trigger: Math.max(1, Math.floor(readNumericInput("fullRowTrigger", DEFAULT_PLACEMENT.full_row_trigger))),
         full_row_side_margin: Math.max(0, readNumericInput("sideMargin", DEFAULT_PLACEMENT.full_row_side_margin)),
         full_row_front_margin: Math.max(0, readNumericInput("frontMargin", DEFAULT_PLACEMENT.full_row_front_margin)),
+        full_row_back_aisle: Math.max(0, readNumericInput("backAisle", DEFAULT_PLACEMENT.full_row_back_aisle ?? 36)),
         enforce_collisions: document.getElementById("enforceCollisions").checked,
       };
+    }
+
+    function scheduleRun() {
+      clearTimeout(autoRunTimer);
+      autoRunTimer = setTimeout(() => {
+        run();
+      }, AUTO_RUN_DELAY_MS);
     }
 
     function getRenderSettings() {
@@ -754,6 +765,7 @@
       document.getElementById("fullRowTrigger").value = DEFAULT_PLACEMENT.full_row_trigger;
       document.getElementById("sideMargin").value = DEFAULT_PLACEMENT.full_row_side_margin;
       document.getElementById("frontMargin").value = DEFAULT_PLACEMENT.full_row_front_margin;
+      document.getElementById("backAisle").value = DEFAULT_PLACEMENT.full_row_back_aisle ?? 36;
       document.getElementById("alignAislesAcrossRows").checked = DEFAULT_PLACEMENT.align_aisles_across_rows ?? true;
       document.getElementById("enforceCollisions").checked = DEFAULT_PLACEMENT.enforce_collisions;
       document.getElementById("showOccupied").checked = true;
@@ -770,11 +782,19 @@
     function wireEvents() {
       document.getElementById("generateBtn").addEventListener("click", run);
       document.getElementById("resetBtn").addEventListener("click", resetDefaults);
-      ["showOccupied", "showMachine", "showRaceway", "showLabels", "showGrid"].forEach((id) => {
-        document.getElementById(id).addEventListener("change", () => {
+      const controlsRoot = document.querySelector(".shell > section.panel .panel-body");
+      const renderOnlyIds = new Set(["showOccupied", "showMachine", "showRaceway", "showLabels", "showGrid"]);
+      const onControlsChanged = (event) => {
+        const target = event.target;
+        if (!target || !target.matches("input, select, textarea")) return;
+        if (renderOnlyIds.has(target.id)) {
           if (latestResult) draw(latestResult);
-        });
-      });
+          return;
+        }
+        scheduleRun();
+      };
+      controlsRoot.addEventListener("input", onControlsChanged);
+      controlsRoot.addEventListener("change", onControlsChanged);
     }
 
     function init() {
@@ -785,6 +805,7 @@
       document.getElementById("fullRowTrigger").value = DEFAULT_PLACEMENT.full_row_trigger;
       document.getElementById("sideMargin").value = DEFAULT_PLACEMENT.full_row_side_margin;
       document.getElementById("frontMargin").value = DEFAULT_PLACEMENT.full_row_front_margin;
+      document.getElementById("backAisle").value = DEFAULT_PLACEMENT.full_row_back_aisle ?? 36;
       document.getElementById("alignAislesAcrossRows").checked = DEFAULT_PLACEMENT.align_aisles_across_rows ?? true;
       document.getElementById("enforceCollisions").checked = DEFAULT_PLACEMENT.enforce_collisions;
       renderCountControls();
