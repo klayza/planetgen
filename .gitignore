@@ -1,3 +1,5 @@
 *xlsx
 *.dwg
 *.pyc
+data/.blocksMetadata/*
+data/*
