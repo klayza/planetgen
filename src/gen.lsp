@@ -1,51 +1,274 @@
-(defun c:gen ( / blockMap input data code x y blockName)
-  ;; alias -> actual block name already in this drawing
-  (setq blockMap
-    '(
-      ("TR" . "41")
+(vl-load-com)
+
+(defun pg:read-file (path / file line lines)
+  (setq file (open path "r"))
+  (if file
+    (progn
+      (setq lines '())
+      (while (setq line (read-line file))
+        (setq lines (cons line lines))
+      )
+      (close file)
+      (apply 'strcat (reverse lines))
+    )
+    nil
+  )
+)
+
+(defun pg:skip-ws (text idx / ch len)
+  (setq len (strlen text))
+  (while
+    (and (<= idx len)
+         (setq ch (substr text idx 1))
+         (member ch '(" " "\t" "\r" "\n"))
+    )
+    (setq idx (1+ idx))
+  )
+  idx
+)
+
+(defun pg:parse-string (text idx / done len ch next result)
+  (setq len (strlen text))
+  (setq idx (1+ idx))
+  (setq result "")
+  (setq done nil)
+  (while (and (<= idx len) (not done))
+    (setq ch (substr text idx 1))
+    (cond
+      ((= ch "\"")
+        (setq idx (1+ idx))
+        (setq done T)
+      )
+      ((= ch "\\")
+        (setq idx (1+ idx))
+        (if (> idx len)
+          (setq done T)
+          (progn
+            (setq next (substr text idx 1))
+            (cond
+              ((= next "\"") (setq result (strcat result "\"")))
+              ((= next "\\") (setq result (strcat result "\\")))
+              ((= next "/") (setq result (strcat result "/")))
+              ((= next "b") (setq result (strcat result "\b")))
+              ((= next "f") (setq result (strcat result "\f")))
+              ((= next "n") (setq result (strcat result "\n")))
+              ((= next "r") (setq result (strcat result "\r")))
+              ((= next "t") (setq result (strcat result "\t")))
+              (T (setq result (strcat result next)))
+            )
+            (setq idx (1+ idx))
+          )
+        )
+      )
+      (T
+        (setq result (strcat result ch))
+        (setq idx (1+ idx))
+      )
     )
   )
+  (list result idx)
+)
 
-  ;; user enters: tr 50 100
-  (setq input (getstring T "\nEnter <code x y> (example: tr 50 100): "))
+(defun pg:parse-number (text idx / len start ch token)
+  (setq len (strlen text))
+  (setq start idx)
+  (while
+    (and (<= idx len)
+         (setq ch (substr text idx 1))
+         (wcmatch ch "[0-9+-.eE]")
+    )
+    (setq idx (1+ idx))
+  )
+  (setq token (substr text start (- idx start)))
+  (list (atof token) idx)
+)
 
-  (if (or (null input) (= input ""))
-    (prompt "\nNo input provided.")
+(defun pg:parse-literal (text idx literal value / end)
+  (setq end (+ idx (strlen literal) -1))
+  (if (= (substr text idx (strlen literal)) literal)
+    (list value (1+ end))
+    (list nil idx)
+  )
+)
+
+(defun pg:parse-array (text idx / len items parsed value)
+  (setq len (strlen text))
+  (setq idx (1+ idx))
+  (setq items '())
+  (setq idx (pg:skip-ws text idx))
+  (if (= (substr text idx 1) "]")
+    (list (reverse items) (1+ idx))
     (progn
-      (setq data (vl-catch-all-apply 'read (list (strcat "(" input ")"))))
+      (while (<= idx len)
+        (setq parsed (pg:parse-value text idx))
+        (setq value (car parsed))
+        (setq idx (pg:skip-ws text (cadr parsed)))
+        (setq items (cons value items))
+        (cond
+          ((= (substr text idx 1) ",")
+            (setq idx (pg:skip-ws text (1+ idx)))
+          )
+          ((= (substr text idx 1) "]")
+            (setq idx (1+ idx))
+            (setq len 0)
+          )
+          (T
+            (setq len 0)
+          )
+        )
+      )
+      (list (reverse items) idx)
+    )
+  )
+)
 
-      (if (vl-catch-all-error-p data)
-        (prompt "\nInvalid format. Example: tr 50 100")
+(defun pg:parse-object (text idx / len pairs key parsed value)
+  (setq len (strlen text))
+  (setq idx (1+ idx))
+  (setq pairs '())
+  (setq idx (pg:skip-ws text idx))
+  (if (= (substr text idx 1) "}")
+    (list (reverse pairs) (1+ idx))
+    (progn
+      (while (<= idx len)
+        (setq parsed (pg:parse-string text idx))
+        (setq key (car parsed))
+        (setq idx (pg:skip-ws text (cadr parsed)))
+        (if (= (substr text idx 1) ":")
+          (setq idx (pg:skip-ws text (1+ idx)))
+        )
+        (setq parsed (pg:parse-value text idx))
+        (setq value (car parsed))
+        (setq idx (pg:skip-ws text (cadr parsed)))
+        (setq pairs (cons (cons key value) pairs))
+        (cond
+          ((= (substr text idx 1) ",")
+            (setq idx (pg:skip-ws text (1+ idx)))
+          )
+          ((= (substr text idx 1) "}")
+            (setq idx (1+ idx))
+            (setq len 0)
+          )
+          (T
+            (setq len 0)
+          )
+        )
+      )
+      (list (reverse pairs) idx)
+    )
+  )
+)
+
+(defun pg:parse-value (text idx / ch)
+  (setq idx (pg:skip-ws text idx))
+  (setq ch (substr text idx 1))
+  (cond
+    ((= ch "{") (pg:parse-object text idx))
+    ((= ch "[") (pg:parse-array text idx))
+    ((= ch "\"") (pg:parse-string text idx))
+    ((or (= ch "-") (wcmatch ch "[0-9]")) (pg:parse-number text idx))
+    ((= (substr text idx 4) "true") (pg:parse-literal text idx "true" T))
+    ((= (substr text idx 5) "false") (pg:parse-literal text idx "false" nil))
+    ((= (substr text idx 4) "null") (pg:parse-literal text idx "null" nil))
+    (T (list nil idx))
+  )
+)
+
+(defun pg:json-parse (text / parsed)
+  (setq parsed (pg:parse-value text 1))
+  (car parsed)
+)
+
+(defun pg:json-get (obj key)
+  (cdr (assoc key obj))
+)
+
+(defun pg:number (value fallback)
+  (if (numberp value) value fallback)
+)
+
+(defun pg:string (value fallback)
+  (if (= (type value) 'STR) value fallback)
+)
+
+(defun pg:insert-placement (item / blockName point x y z sx sy rot itemType)
+  (setq itemType (pg:string (pg:json-get item "type") "UNKNOWN"))
+  (setq blockName (pg:string (pg:json-get item "block_name") ""))
+  (setq point (pg:json-get item "insertion_point"))
+  (setq x (pg:number (pg:json-get point "x") 0.0))
+  (setq y (pg:number (pg:json-get point "y") 0.0))
+  (setq z (pg:number (pg:json-get point "z") 0.0))
+  (setq rot (pg:number (pg:json-get item "rotation") 0.0))
+  (setq sx (pg:json-get item "scale"))
+  (setq sy sx)
+
+  (cond
+    ((= blockName "")
+      (prompt (strcat "\nSkipping " itemType ": no block_name in JSON."))
+      nil
+    )
+    ((not (tblsearch "BLOCK" blockName))
+      (prompt (strcat "\nSkipping " itemType ": block not found in drawing: " blockName))
+      nil
+    )
+    (T
+      (command
+        "_.-INSERT"
+        blockName
+        (list x y z)
+        (pg:number (pg:json-get sx "x") 1.0)
+        (pg:number (pg:json-get sy "y") 1.0)
+        rot
+      )
+      (prompt
+        (strcat
+          "\nPlaced "
+          itemType
+          " using "
+          blockName
+          " at ("
+          (rtos x 2 2)
+          ", "
+          (rtos y 2 2)
+          ")."
+        )
+      )
+      T
+    )
+  )
+)
+
+(defun c:gen ( / path text data placements placedCount skippedCount)
+  (setq path (getfiled "Select Planetgen layout JSON" "" "json" 16))
+
+  (if (or (null path) (= path ""))
+    (prompt "\nNo JSON file selected.")
+    (progn
+      (setq text (pg:read-file path))
+      (if (or (null text) (= text ""))
+        (prompt "\nUnable to read JSON file.")
         (progn
-          (if (< (length data) 3)
-            (prompt "\nInvalid input. Example: tr 50 100")
+          (setq data (pg:json-parse text))
+          (setq placements (pg:json-get data "placements"))
+
+          (if (not (listp placements))
+            (prompt "\nJSON file does not contain a placements array.")
             (progn
-              (setq code (strcase (vl-symbol-name (car data))))
-              (setq x (float (cadr data)))
-              (setq y (float (caddr data)))
-
-              (setq blockName (cdr (assoc code blockMap)))
-
-              (cond
-                ((null blockName)
-                  (prompt (strcat "\nUnknown equipment code: " code))
+              (setq placedCount 0)
+              (setq skippedCount 0)
+              (foreach item placements
+                (if (pg:insert-placement item)
+                  (setq placedCount (1+ placedCount))
+                  (setq skippedCount (1+ skippedCount))
                 )
-                ((not (tblsearch "BLOCK" blockName))
-                  (prompt (strcat "\nBlock not found in drawing: " blockName))
-                )
-                (T
-                  (command "_.-INSERT" blockName (list x y 0.0) 1.0 1.0 0.0)
-                  (prompt
-                    (strcat
-                      "\nPlaced "
-                      code
-                      " at ("
-                      (rtos x 2 2)
-                      ", "
-                      (rtos y 2 2)
-                      ")."
-                    )
-                  )
+              )
+              (prompt
+                (strcat
+                  "\nGEN complete. Placed "
+                  (itoa placedCount)
+                  ", skipped "
+                  (itoa skippedCount)
+                  "."
                 )
               )
             )

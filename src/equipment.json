@@ -6,6 +6,7 @@
 
   "TREADMILL": {
     "category": "cardio_powered",
+    "block_name": "Treadmill (T5X-5PL-PF)",
     "footprint": { "w": 36, "d": 80 },
     "clearance": { "front": 36, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
@@ -14,6 +15,7 @@
 
   "CLIMBMILL": {
     "category": "cardio_powered",
+    "block_name": "Stepmill (C5X-5PL-PF)",
     "footprint": { "w": 36, "d": 65 },
     "clearance": { "front": 36, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
@@ -22,6 +24,7 @@
 
   "ARC_TRAINER_LOW": {
     "category": "cardio_powered",
+    "block_name": "Ascent (ALB5X-PF-4PL)",
     "footprint": { "w": 30, "d": 70 },
     "clearance": { "front": 30, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
@@ -30,6 +33,7 @@
 
   "ELLIPTICAL": {
     "category": "cardio_powered",
+    "block_name": "Elliptical (E5X-5PL-PF)",
     "footprint": { "w": 30, "d": 70 },
     "clearance": { "front": 30, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
@@ -38,6 +42,7 @@
 
   "ROWER": {
     "category": "cardio_nonpowered",
+    "block_name": "Rower (ROWER-5PL-PF)",
     "footprint": { "w": 24, "d": 96 },
     "clearance": { "front": 24, "back": 24, "left": 6, "right": 6 },
     "requires_raceway": false,
@@ -46,6 +51,7 @@
 
   "UPRIGHT_CYCLE": {
     "category": "cardio_powered",
+    "block_name": "Bike Up. (U5X-5PL-PF)",
     "footprint": { "w": 24, "d": 48 },
     "clearance": { "front": 24, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
@@ -54,6 +60,7 @@
 
   "INDOOR_CYCLE": {
     "category": "cardio_nonpowered",
+    "block_name": "M AirBike",
     "footprint": { "w": 24, "d": 48 },
     "clearance": { "front": 24, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": false,

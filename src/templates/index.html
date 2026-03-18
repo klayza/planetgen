@@ -299,6 +299,7 @@
 
         <div class="controls-actions">
           <button class="btn-primary" id="generateBtn">Generate Layout</button>
+          <button class="btn-secondary" id="exportBtn">Export Layout JSON</button>
           <button class="btn-secondary" id="resetBtn">Reset Defaults</button>
         </div>
       </div>
@@ -538,6 +539,74 @@
         full_row_back_aisle: Math.max(0, readNumericInput("backAisle", DEFAULT_PLACEMENT.full_row_back_aisle ?? 36)),
         enforce_collisions: document.getElementById("enforceCollisions").checked,
       };
+    }
+
+    function buildExportLayout(result) {
+      if (!result || !result.gym) return null;
+
+      const placements = (result.placed || []).map((item, index) => {
+        const blockName = EQUIPMENT[item.type]?.block_name || null;
+        const machine = item.machine || {};
+        return {
+          index: index + 1,
+          type: item.type,
+          block_name: blockName,
+          insertion_point: {
+            x: Number(machine.x ?? 0),
+            y: Number(machine.y ?? 0),
+            z: 0
+          },
+          rotation: 0,
+          scale: {
+            x: 1,
+            y: 1,
+            z: 1
+          },
+          machine
+        };
+      });
+
+      return {
+        meta: {
+          format: "planetgen_layout_export",
+          version: "1.0",
+          units: "inches"
+        },
+        gym: result.gym,
+        summary: {
+          placed_total: placements.length,
+          unplaced_total: Object.values(result.unplaced || {}).reduce((sum, value) => sum + Number(value || 0), 0)
+        },
+        placements
+      };
+    }
+
+    function downloadTextFile(filename, text) {
+      const blob = new Blob([text], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportLayout() {
+      if (!latestResult) {
+        window.alert("Generate a layout before exporting.");
+        return;
+      }
+
+      const exportData = buildExportLayout(latestResult);
+      if (!exportData) {
+        window.alert("No layout is available to export.");
+        return;
+      }
+
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      downloadTextFile(`planetgen-layout-${stamp}.json`, JSON.stringify(exportData, null, 2));
     }
 
     function scheduleRun() {
@@ -781,6 +850,7 @@
 
     function wireEvents() {
       document.getElementById("generateBtn").addEventListener("click", run);
+      document.getElementById("exportBtn").addEventListener("click", exportLayout);
       document.getElementById("resetBtn").addEventListener("click", resetDefaults);
       const controlsRoot = document.querySelector(".shell > section.panel .panel-body");
       const renderOnlyIds = new Set(["showOccupied", "showMachine", "showRaceway", "showLabels", "showGrid"]);
