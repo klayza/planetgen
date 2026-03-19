@@ -8,7 +8,7 @@
     "category": "cardio_powered",
     "block_name": "Treadmill (T5X-5PL-PF)",
     "block_angle_offset": 90,
-    "footprint": { "w": 36, "d": 80 },
+    "footprint": { "w": 36.5, "d": 84.6 },
     "clearance": { "front": 36, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
     "default_orientation": "north"
@@ -18,7 +18,7 @@
     "category": "cardio_powered",
     "block_name": "Stepmill (C5X-5PL-PF)",
     "block_angle_offset": 180,
-    "footprint": { "w": 36, "d": 65 },
+    "footprint": { "w": 40.3, "d": 65 },
     "clearance": { "front": 36, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
     "default_orientation": "north"
@@ -28,7 +28,17 @@
     "category": "cardio_powered",
     "block_name": "Ascent (ALB5X-PF-4PL)",
     "block_angle_offset": 180,
-    "footprint": { "w": 30, "d": 70 },
+    "footprint": { "w": 29.2, "d": 70 },
+    "clearance": { "front": 30, "back": 12, "left": 6, "right": 6 },
+    "requires_raceway": true,
+    "default_orientation": "north"
+  },
+
+  "ARC_TRAINER_FULL": {
+    "category": "cardio_powered",
+    "block_name": "Ascent Full (A5X-4PL-PF)",
+    "block_angle_offset": 180,
+    "footprint": { "w": 29.2, "d": 70 },
     "clearance": { "front": 30, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
     "default_orientation": "north"
@@ -38,7 +48,7 @@
     "category": "cardio_powered",
     "block_name": "Elliptical (E5X-5PL-PF)",
     "block_angle_offset": 180,
-    "footprint": { "w": 30, "d": 70 },
+    "footprint": { "w": 29.2, "d": 70 },
     "clearance": { "front": 30, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
     "default_orientation": "north"
@@ -58,7 +68,17 @@
     "category": "cardio_powered",
     "block_name": "Bike Up. (U5X-5PL-PF)",
     "block_angle_offset": 180,
-    "footprint": { "w": 24, "d": 48 },
+    "footprint": { "w": 25.7, "d": 51.5 },
+    "clearance": { "front": 24, "back": 12, "left": 6, "right": 6 },
+    "requires_raceway": true,
+    "default_orientation": "north"
+  },
+
+  "RECUMBENT_CYCLE": {
+    "category": "cardio_powered",
+    "block_name": "Bike Rec. (R5X-5PL-PF)",
+    "block_angle_offset": 180,
+    "footprint": { "w": 25.7, "d": 59.2 },
     "clearance": { "front": 24, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": true,
     "default_orientation": "north"
@@ -68,7 +88,7 @@
     "category": "cardio_nonpowered",
     "block_name": "HM5A",
     "block_angle_offset": 90,
-    "footprint": { "w": 24, "d": 48 },
+    "footprint": { "w": 58.2, "d": 60.5 },
     "clearance": { "front": 24, "back": 12, "left": 6, "right": 6 },
     "requires_raceway": false,
     "default_orientation": "north"
