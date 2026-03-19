@@ -69,13 +69,20 @@
   (list result idx)
 )
 
+(defun pg:number-char-p (ch)
+  (or
+    (wcmatch ch "[0-9]")
+    (member ch '("+" "-" "." "e" "E"))
+  )
+)
+
 (defun pg:parse-number (text idx / len start ch token)
   (setq len (strlen text))
   (setq start idx)
   (while
     (and (<= idx len)
          (setq ch (substr text idx 1))
-         (wcmatch ch "[0-9+-.eE]")
+         (pg:number-char-p ch)
     )
     (setq idx (1+ idx))
   )
@@ -191,6 +198,10 @@
   (if (= (type value) 'STR) value fallback)
 )
 
+(defun pg:debug (message)
+  (prompt (strcat "\n[GEN] " message))
+)
+
 (defun pg:insert-placement (item / blockName point x y z sx sy rot itemType)
   (setq itemType (pg:string (pg:json-get item "type") "UNKNOWN"))
   (setq blockName (pg:string (pg:json-get item "block_name") ""))
@@ -238,22 +249,37 @@
   )
 )
 
-(defun c:gen ( / path text data placements placedCount skippedCount)
+(defun c:gen ( / path text data placements placementsPair placedCount skippedCount)
   (setq path (getfiled "Select Planetgen layout JSON" "" "json" 16))
 
   (if (or (null path) (= path ""))
     (prompt "\nNo JSON file selected.")
     (progn
+      (pg:debug (strcat "Reading JSON from: " path))
       (setq text (pg:read-file path))
       (if (or (null text) (= text ""))
         (prompt "\nUnable to read JSON file.")
         (progn
+          (pg:debug (strcat "Read " (itoa (strlen text)) " characters."))
           (setq data (pg:json-parse text))
-          (setq placements (pg:json-get data "placements"))
+          (setq placementsPair (assoc "placements" data))
+          (setq placements (if placementsPair (cdr placementsPair) nil))
 
-          (if (not (listp placements))
-            (prompt "\nJSON file does not contain a placements array.")
-            (progn
+          (cond
+            ((not (listp data))
+              (pg:debug "Top-level JSON parse did not return an object list.")
+              (prompt "\nUnable to parse JSON file.")
+            )
+            ((null placementsPair)
+              (pg:debug "Top-level JSON object does not contain a placements key.")
+              (prompt "\nJSON parse completed, but placements was not found. Check the parser output.")
+            )
+            ((not (listp placements))
+              (pg:debug "placements exists, but is not a list.")
+              (prompt "\nJSON file does not contain a placements array.")
+            )
+            (T
+              (pg:debug (strcat "Found " (itoa (length placements)) " placement entries."))
               (setq placedCount 0)
               (setq skippedCount 0)
               (foreach item placements
