@@ -217,6 +217,7 @@ def place_layout(
         consumed: Dict[str, int] = {eq_name: 0 for eq_name in type_order}
         row_items: List[Dict[str, Any]] = []
         row_rects: List[Rect] = []
+        row_slots: List[Dict[str, Any]] = []
         cursor_x = side_margin
         right_limit = W - side_margin
         row_depth_with_clearance = 0.0
@@ -294,16 +295,16 @@ def place_layout(
                     failures.append("insufficient_depth")
                     continue
 
-                occ_y = row_ref_y - raceway_d - spec["fp_d"]
+                machine_y = row_ref_y - proposed_row_depth
                 machine_x = cursor_x + (slot_w - spec["fp_w"]) / 2.0
-                machine_rect = Rect(machine_x, occ_y, spec["fp_w"], spec["fp_d"])
+                machine_rect = Rect(machine_x, machine_y, spec["fp_w"], spec["fp_d"])
                 if spec["powered"]:
-                    # Powered slots use a slot-wide raceway so adjacent powered slots form one connected path.
-                    race_rect = Rect(cursor_x, row_ref_y - raceway_d, slot_w, raceway_d)
-                    occ_rect = Rect(cursor_x, occ_y, slot_w, spec["fp_d"] + raceway_d)
+                    # Rows are built from the back edge inward, so the raceway sits on the machine face side.
+                    race_rect = Rect(cursor_x, machine_y - raceway_d, slot_w, raceway_d)
+                    occ_rect = Rect(cursor_x, machine_y - raceway_d, slot_w, spec["fp_d"] + raceway_d)
                 else:
                     race_rect = None
-                    occ_rect = Rect(cursor_x, occ_y, slot_w, spec["fp_d"])
+                    occ_rect = Rect(cursor_x, machine_y, slot_w, spec["fp_d"])
 
                 if not occ_rect.within(W, D):
                     failures.append("bounds_violation")
@@ -340,17 +341,12 @@ def place_layout(
                 break
 
             eq_name, spec, slot_w, occ_rect, machine_rect, race_rect = selected
-            row_items.append({
+            row_slots.append({
                 "type": eq_name,
-                "orientation": "north",
-                "occupied": {"x": occ_rect.x, "y": occ_rect.y, "w": occ_rect.w, "d": occ_rect.d},
-                "machine": {"x": machine_rect.x, "y": machine_rect.y, "w": machine_rect.w, "d": machine_rect.d},
-                "raceway": (
-                    {"x": race_rect.x, "y": race_rect.y, "w": race_rect.w, "d": race_rect.d}
-                    if race_rect else None
-                ),
+                "spec": spec,
+                "slot_w": slot_w,
+                "cursor_x": cursor_x,
             })
-            row_rects.append(occ_rect)
             consumed[eq_name] += 1
             local_remaining[eq_name] -= 1
             cursor_x += slot_w
@@ -358,10 +354,39 @@ def place_layout(
             row_depth_with_clearance = max(row_depth_with_clearance, spec["fp_d"] + spec["cl_b"])
             slot_index += 1
 
-        placed_in_row = len(row_items)
+        placed_in_row = len(row_slots)
+
+        if placed_in_row > 0:
+            machine_front_y = row_ref_y - row_depth_with_clearance
+            for slot in row_slots:
+                eq_name = slot["type"]
+                spec = slot["spec"]
+                slot_w = slot["slot_w"]
+                slot_x = slot["cursor_x"]
+                machine_x = slot_x + (slot_w - spec["fp_w"]) / 2.0
+                machine_rect = Rect(machine_x, machine_front_y, spec["fp_w"], spec["fp_d"])
+                if spec["powered"]:
+                    race_rect = Rect(slot_x, machine_front_y - raceway_d, slot_w, raceway_d)
+                    occ_rect = Rect(slot_x, machine_front_y - raceway_d, slot_w, spec["fp_d"] + raceway_d)
+                else:
+                    race_rect = None
+                    occ_rect = Rect(slot_x, machine_front_y, slot_w, spec["fp_d"])
+
+                row_items.append({
+                    "type": eq_name,
+                    "orientation": "north",
+                    "occupied": {"x": occ_rect.x, "y": occ_rect.y, "w": occ_rect.w, "d": occ_rect.d},
+                    "machine": {"x": machine_rect.x, "y": machine_rect.y, "w": machine_rect.w, "d": machine_rect.d},
+                    "raceway": (
+                        {"x": race_rect.x, "y": race_rect.y, "w": race_rect.w, "d": race_rect.d}
+                        if race_rect else None
+                    ),
+                })
+                row_rects.append(occ_rect)
+
         attempt["placed"] = placed_in_row
         attempt["reason"] = stop_reason
-        attempt["sequence"] = [item["type"] for item in row_items]
+        attempt["sequence"] = [slot["type"] for slot in row_slots]
         attempt["consumed"] = {eq_name: count for eq_name, count in consumed.items() if count > 0}
         attempt["aisle_bands_used"] = [{"x1": b[0], "x2": b[1]} for b in used_aisles]
         attempt["aisle_bands_generated"] = [{"x1": b[0], "x2": b[1]} for b in generated_aisles]
