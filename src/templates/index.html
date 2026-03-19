@@ -849,8 +849,8 @@
     async function run() {
       const { counts, typeOrder } = collectCountsAndOrder();
       const body = {
-        w: Math.max(1, readNumericInput("gymW", 2400)),
-        d: Math.max(1, readNumericInput("gymD", 1800)),
+        w: Math.max(1, readNumericInput("gymW", 2000)),
+        d: Math.max(1, readNumericInput("gymD", 1000)),
         counts,
         type_order: typeOrder,
         placement: collectPlacement(),
@@ -872,8 +872,8 @@
     }
 
     function resetDefaults() {
-      document.getElementById("gymW").value = 2400;
-      document.getElementById("gymD").value = 1800;
+      document.getElementById("gymW").value = 2000;
+      document.getElementById("gymD").value = 1000;
       document.getElementById("rowCap").value = DEFAULT_PLACEMENT.row_cap;
       document.getElementById("aisleGap").value = DEFAULT_PLACEMENT.aisle_gap ?? 36;
       document.getElementById("fullRowTrigger").value = DEFAULT_PLACEMENT.full_row_trigger;
@@ -913,8 +913,8 @@
     }
 
     function init() {
-      document.getElementById("gymW").value = 2400;
-      document.getElementById("gymD").value = 1800;
+      document.getElementById("gymW").value = 2000;
+      document.getElementById("gymD").value = 1000;
       document.getElementById("rowCap").value = DEFAULT_PLACEMENT.row_cap;
       document.getElementById("aisleGap").value = DEFAULT_PLACEMENT.aisle_gap ?? 36;
       document.getElementById("fullRowTrigger").value = DEFAULT_PLACEMENT.full_row_trigger;

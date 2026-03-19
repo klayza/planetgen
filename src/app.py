@@ -157,8 +157,8 @@ def index():
 @app.post("/api/layout")
 def api_layout():
     payload = request.get_json(force=True) or {}
-    W = _float_or_default(payload.get("w"), 2400.0, minimum=1.0)  # 200 ft default
-    D = _float_or_default(payload.get("d"), 1800.0, minimum=1.0)  # 150 ft default
+    W = _float_or_default(payload.get("w"), 2000.0, minimum=1.0)
+    D = _float_or_default(payload.get("d"), 1000.0, minimum=1.0)
     type_order = _sanitize_type_order(payload.get("type_order"))
     counts = _sanitize_counts(payload.get("counts"), type_order)
     placement = _sanitize_placement(payload.get("placement"))
