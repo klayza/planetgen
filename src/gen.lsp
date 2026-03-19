@@ -202,7 +202,15 @@
   (prompt (strcat "\n[GEN] " message))
 )
 
-(defun pg:insert-placement (item / blockName point x y z sx sy rot itemType)
+(defun pg:get-active-space ( / doc)
+  (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
+  (if (= (getvar "CVPORT") 1)
+    (vla-get-PaperSpace doc)
+    (vla-get-ModelSpace doc)
+  )
+)
+
+(defun pg:insert-placement (item / blockName point x y z sx sy sz rot itemType space insertObj)
   (setq itemType (pg:string (pg:json-get item "type") "UNKNOWN"))
   (setq blockName (pg:string (pg:json-get item "block_name") ""))
   (setq point (pg:json-get item "insertion_point"))
@@ -212,6 +220,7 @@
   (setq rot (pg:number (pg:json-get item "rotation") 0.0))
   (setq sx (pg:json-get item "scale"))
   (setq sy sx)
+  (setq sz sx)
 
   (cond
     ((= blockName "")
@@ -223,28 +232,38 @@
       nil
     )
     (T
-      (command
-        "_.-INSERT"
-        blockName
-        (list x y z)
-        (pg:number (pg:json-get sx "x") 1.0)
-        (pg:number (pg:json-get sy "y") 1.0)
-        rot
-      )
-      (prompt
-        (strcat
-          "\nPlaced "
-          itemType
-          " using "
+      (setq space (pg:get-active-space))
+      (setq insertObj
+        (vla-InsertBlock
+          space
+          (vlax-3d-point (list x y z))
           blockName
-          " at ("
-          (rtos x 2 2)
-          ", "
-          (rtos y 2 2)
-          ")."
+          (pg:number (pg:json-get sx "x") 1.0)
+          (pg:number (pg:json-get sy "y") 1.0)
+          (pg:number (pg:json-get sz "z") 1.0)
+          (* pi (/ rot 180.0))
         )
       )
-      T
+      (if insertObj
+        (prompt
+          (strcat
+            "\nPlaced "
+            itemType
+            " using "
+            blockName
+            " at ("
+            (rtos x 2 2)
+            ", "
+            (rtos y 2 2)
+            ")."
+          )
+        )
+        (prompt (strcat "\nFailed to insert " itemType " using " blockName "."))
+      )
+      (if insertObj
+        T
+        nil
+      )
     )
   )
 )

@@ -137,6 +137,8 @@ def _merge_equipment_overrides(raw_overrides) -> dict:
 
         if "requires_raceway" in override and "requires_raceway" in target:
             target["requires_raceway"] = _bool_or_default(override["requires_raceway"], bool(target["requires_raceway"]))
+        if "block_angle_offset" in override and "block_angle_offset" in target:
+            target["block_angle_offset"] = _float_or_default(override["block_angle_offset"], float(target["block_angle_offset"]))
 
     return merged
 

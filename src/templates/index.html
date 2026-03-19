@@ -367,6 +367,28 @@
     let autoRunTimer = null;
     const AUTO_RUN_DELAY_MS = 250;
 
+    function normalizeAngle(angle) {
+      const normalized = Number(angle) % 360;
+      return normalized < 0 ? normalized + 360 : normalized;
+    }
+
+    function getEffectiveEquipmentSpec(eqName) {
+      const base = EQUIPMENT[eqName] || {};
+      const override = collectEquipmentOverrides()[eqName] || {};
+      return {
+        ...base,
+        ...override,
+        footprint: {
+          ...(base.footprint || {}),
+          ...(override.footprint || {}),
+        },
+        clearance: {
+          ...(base.clearance || {}),
+          ...(override.clearance || {}),
+        },
+      };
+    }
+
     function getEquipmentTypes() {
       return DEFAULT_TYPE_ORDER.filter((name) => Object.prototype.hasOwnProperty.call(EQUIPMENT, name));
     }
@@ -472,6 +494,15 @@
           body.appendChild(checkLabel);
         }
 
+        if (name !== "RACEWAY") {
+          const angle = createInput("Block angle offset", spec.block_angle_offset ?? 0, "number", {
+            step: "1",
+            dataset: { role: "eqAngle", eqName: name, key: "block_angle_offset" },
+          });
+          angle.label.style.gridColumn = "span 2";
+          body.appendChild(angle.label);
+        }
+
         details.appendChild(body);
         wrap.appendChild(details);
       });
@@ -525,6 +556,14 @@
         overrides[eqName][key] = input.checked;
       });
 
+      document.querySelectorAll('input[data-role="eqAngle"]').forEach((input) => {
+        const eqName = input.dataset.eqName;
+        const value = parseFloat(input.value);
+        if (!Number.isFinite(value)) return;
+        if (!overrides[eqName]) overrides[eqName] = {};
+        overrides[eqName].block_angle_offset = value;
+      });
+
       return overrides;
     }
 
@@ -545,7 +584,9 @@
       if (!result || !result.gym) return null;
 
       const placements = (result.placed || []).map((item, index) => {
-        const blockName = EQUIPMENT[item.type]?.block_name || null;
+        const spec = getEffectiveEquipmentSpec(item.type);
+        const blockName = spec.block_name || null;
+        const blockAngleOffset = Number(spec.block_angle_offset ?? 0);
         const machine = item.machine || {};
         return {
           index: index + 1,
@@ -556,7 +597,7 @@
             y: Number(machine.y ?? 0),
             z: 0
           },
-          rotation: 0,
+          rotation: normalizeAngle(blockAngleOffset),
           scale: {
             x: 1,
             y: 1,
@@ -720,7 +761,11 @@
           ctx.save();
           ctx.fillStyle = "#111";
           ctx.font = "11px Consolas";
-          ctx.fillText(item.type, r.x + 2, r.y + 12);
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.translate(r.x + r.w / 2, r.y + r.h / 2);
+          ctx.rotate(-Math.PI / 4);
+          ctx.fillText(item.type, 0, 0);
           ctx.restore();
         }
       });
