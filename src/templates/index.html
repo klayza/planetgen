@@ -271,7 +271,7 @@
           <div class="grid-2">
             <label>Machines per block<input id="rowCap" type="number" min="1" step="1"></label>
             <label>Aisle gap (in)<input id="aisleGap" type="number" min="0" step="1"></label>
-            <label>Full-row trigger<input id="fullRowTrigger" type="number" min="1" step="1"></label>
+            <label>Full-row trigger<input id="fullRowTrigger" type="number" min="0" step="1"></label>
             <label>Side margin (in)<input id="sideMargin" type="number" min="0" step="1"></label>
             <label>Front margin (in)<input id="frontMargin" type="number" min="0" step="1"></label>
             <label>Full-row back aisle (in)<input id="backAisle" type="number" min="0" step="1"></label>
@@ -572,7 +572,7 @@
         row_cap: Math.max(1, Math.floor(readNumericInput("rowCap", DEFAULT_PLACEMENT.row_cap))),
         aisle_gap: Math.max(0, readNumericInput("aisleGap", DEFAULT_PLACEMENT.aisle_gap ?? 36)),
         align_aisles_across_rows: document.getElementById("alignAislesAcrossRows").checked,
-        full_row_trigger: Math.max(1, Math.floor(readNumericInput("fullRowTrigger", DEFAULT_PLACEMENT.full_row_trigger))),
+        full_row_trigger: Math.max(0, Math.floor(readNumericInput("fullRowTrigger", DEFAULT_PLACEMENT.full_row_trigger))),
         full_row_side_margin: Math.max(0, readNumericInput("sideMargin", DEFAULT_PLACEMENT.full_row_side_margin)),
         full_row_front_margin: Math.max(0, readNumericInput("frontMargin", DEFAULT_PLACEMENT.full_row_front_margin)),
         full_row_back_aisle: Math.max(0, readNumericInput("backAisle", DEFAULT_PLACEMENT.full_row_back_aisle ?? 36)),

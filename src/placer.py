@@ -32,7 +32,7 @@ class PlacementOptions:
     row_cap: int = 17
     aisle_gap: float = 36.0
     align_aisles_across_rows: bool = True
-    full_row_trigger: int = 17
+    full_row_trigger: int = 0
     full_row_side_margin: float = 36.0
     full_row_front_margin: float = 36.0
     full_row_back_aisle: float = 36.0
@@ -75,7 +75,7 @@ def parse_placement_options(raw: Optional[Dict[str, Any]]) -> PlacementOptions:
         row_cap=_to_int(raw.get("row_cap"), fallback=17, minimum=1),
         aisle_gap=_to_float(raw.get("aisle_gap"), fallback=36.0, minimum=0.0),
         align_aisles_across_rows=_to_bool(raw.get("align_aisles_across_rows"), fallback=True),
-        full_row_trigger=_to_int(raw.get("full_row_trigger"), fallback=17, minimum=1),
+        full_row_trigger=_to_int(raw.get("full_row_trigger"), fallback=0, minimum=0),
         full_row_side_margin=_to_float(raw.get("full_row_side_margin"), fallback=36.0, minimum=0.0),
         full_row_front_margin=_to_float(raw.get("full_row_front_margin"), fallback=36.0, minimum=0.0),
         full_row_back_aisle=_to_float(raw.get("full_row_back_aisle"), fallback=36.0, minimum=0.0),
