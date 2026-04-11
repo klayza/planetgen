@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planetgen BCS Spa Planner</title>
+  <style>
+    :root {
+      --bg: #f3ede4;
+      --panel: #fffaf3;
+      --panel-strong: #f0e5d3;
+      --line: #cbbda8;
+      --ink: #182027;
+      --muted: #59616a;
+      --action: #0e6a60;
+      --action-ink: #f2fbfa;
+      --accent: #9b5e22;
+      --warning: #a44500;
+      --ok: #2f7d38;
+      --sans: "Bahnschrift", "Trebuchet MS", sans-serif;
+      --mono: "Consolas", "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 0%, #fff7e9 0%, transparent 30%),
+        radial-gradient(circle at 85% 10%, #e7dac6 0%, transparent 36%),
+        linear-gradient(160deg, #f4ede3 0%, #e5d7c3 100%);
+    }
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(430px, 560px) minmax(620px, 1fr);
+      gap: 14px;
+      padding: 14px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 28px rgba(44, 37, 26, 0.08);
+    }
+    .panel-header {
+      padding: 10px 12px;
+      background: var(--panel-strong);
+      border-bottom: 1px solid var(--line);
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel-body { padding: 10px 12px; }
+    .nav-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .section { margin-bottom: 14px; }
+    .section:last-child { margin-bottom: 0; }
+    .section-title {
+      margin: 0 0 8px;
+      font-size: 0.92rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+    .grid-2, .grid-3 {
+      display: grid;
+      gap: 8px;
+    }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    input[type="number"], select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 8px;
+      background: white;
+      color: var(--ink);
+      margin-top: 4px;
+      font-family: var(--sans);
+    }
+    input[type="checkbox"] { transform: translateY(1px); }
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    button {
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 8px 11px;
+      cursor: pointer;
+      font-family: var(--sans);
+      font-weight: 700;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--action); color: var(--action-ink); }
+    .btn-secondary { background: #ece5d9; border-color: var(--line); color: var(--ink); }
+    .room-card {
+      border: 1px solid #dfd4c5;
+      border-radius: 10px;
+      background: #fffdf9;
+      padding: 9px;
+      margin-bottom: 8px;
+    }
+    .room-card:last-child { margin-bottom: 0; }
+    .room-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .room-name {
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .room-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .room-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin: 0 0 8px;
+      line-height: 1.35;
+    }
+    .instance-grid {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr) 110px;
+      gap: 6px;
+      align-items: end;
+      padding: 7px;
+      border: 1px dashed #e0d4c0;
+      border-radius: 8px;
+      background: #fffcf6;
+      margin-top: 6px;
+    }
+    .instance-tag {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--accent);
+      padding-bottom: 8px;
+    }
+    .right-column {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+      min-height: 0;
+    }
+    .canvas-wrap { padding: 10px; }
+    #canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fdfbf7;
+    }
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .card {
+      border: 1px solid #ddd2c1;
+      border-radius: 8px;
+      background: #fffdf8;
+      padding: 8px;
+      min-height: 68px;
+    }
+    .card .k {
+      font-size: 0.72rem;
+      color: #6b6356;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+    }
+    .card .v {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-top: 3px;
+    }
+    .status-ok { color: var(--ok); }
+    .status-warn { color: var(--warning); }
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .mini-table th, .mini-table td {
+      border: 1px solid #dfd5c6;
+      padding: 5px 6px;
+      text-align: left;
+    }
+    .mini-table th {
+      background: #f3e9d8;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.28px;
+      color: #5f5748;
+    }
+    .mono {
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      background: #f4ede1;
+      border: 1px solid #ddcfbb;
+      border-radius: 8px;
+      padding: 8px;
+      overflow: auto;
+      white-space: pre-wrap;
+      max-height: 240px;
+      margin: 0;
+    }
+    .warnings {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 0.82rem;
+      color: var(--warning);
+    }
+    @media (max-width: 1320px) {
+      .shell { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel">
+      <div class="panel-header">
+        <span>BCS Spa Planner</span>
+        <a class="nav-link" href="/">Open Cardio Planner</a>
+      </div>
+      <div class="panel-body">
+        <div class="section">
+          <p class="section-title">Shell</p>
+          <div class="grid-3">
+            <label>Width (in)<input id="shellW" type="number" min="120" step="1"></label>
+            <label>Depth (in)<input id="shellD" type="number" min="120" step="1"></label>
+            <label>Entry Edge
+              <select id="entryEdge">
+                <option value="north">North</option>
+                <option value="east">East</option>
+                <option value="south">South</option>
+                <option value="west">West</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="section">
+          <p class="section-title">Lounge</p>
+          <label class="check-row"><input id="loungeAutoSize" type="checkbox">Auto-size lounge from shell</label>
+          <div class="grid-2">
+            <label>Lounge Width (in)<input id="loungeW" type="number" min="96" step="1"></label>
+            <label>Lounge Depth (in)<input id="loungeD" type="number" min="96" step="1"></label>
+          </div>
+        </div>
+
+        <div class="section">
+          <p class="section-title">Rooms</p>
+          <div id="roomControls"></div>
+        </div>
+
+        <div class="section">
+          <p class="section-title">Render</p>
+          <div class="grid-3">
+            <label class="check-row"><input id="showWalls" type="checkbox" checked>Walls</label>
+            <label class="check-row"><input id="showDoors" type="checkbox" checked>Doors</label>
+            <label class="check-row"><input id="showMachines" type="checkbox" checked>Machines</label>
+            <label class="check-row"><input id="showLabels" type="checkbox" checked>Labels</label>
+            <label class="check-row"><input id="showGrid" type="checkbox">Grid</label>
+            <label class="check-row"><input id="includeDebug" type="checkbox" checked>API debug</label>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" id="generateBtn">Generate Spa Layout</button>
+          <button class="btn-secondary" id="exportBtn">Export Spa JSON</button>
+          <button class="btn-secondary" id="resetBtn">Reset Defaults</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="right-column">
+      <div class="panel canvas-wrap">
+        <canvas id="canvas" width="1180" height="720"></canvas>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Spa Debug Output</div>
+        <div class="panel-body">
+          <div class="summary-cards" id="summaryCards"></div>
+
+          <div class="section">
+            <p class="section-title">By Room Type</p>
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Room</th>
+                  <th>Requested</th>
+                  <th>Placed</th>
+                  <th>Unplaced</th>
+                </tr>
+              </thead>
+              <tbody id="roomTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <p class="section-title">Warnings</p>
+            <ul class="warnings" id="warningList"></ul>
+          </div>
+
+          <div class="section">
+            <p class="section-title">Raw Debug JSON</p>
+            <pre class="mono" id="rawDebug"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const SPA_SPEC = {{ spa_spec | tojson }};
+    const ROOM_SPECS = {{ spa_room_specs | tojson }};
+    const DEFAULT_INPUT = {{ default_spa_input | tojson }};
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let latestResult = null;
+    let roomState = JSON.parse(JSON.stringify(DEFAULT_INPUT.rooms));
+    let autoRunTimer = null;
+    const AUTO_RUN_DELAY_MS = 250;
+
+    function titleCase(value) {
+      return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    function getRoomTypes() {
+      return Object.keys(ROOM_SPECS).filter((roomType) => roomType !== "lounge");
+    }
+
+    function getDefaultVariant(roomType) {
+      const spec = ROOM_SPECS[roomType] || {};
+      const variants = spec.machine_type_names || [];
+      return variants.includes(spec.default_variant) ? spec.default_variant : (variants[0] || null);
+    }
+
+    function getDefaultDoorWidth(roomType) {
+      return Number((ROOM_SPECS[roomType] || {}).default_door_width || 36);
+    }
+
+    function syncRoomState(roomType, count) {
+      const nextCount = Math.max(0, Number(count || 0));
+      const room = roomState[roomType] || { count: 0, instances: [] };
+      const instances = Array.isArray(room.instances) ? room.instances.slice(0, nextCount) : [];
+      while (instances.length < nextCount) {
+        instances.push({
+          variant: getDefaultVariant(roomType),
+          door_width: getDefaultDoorWidth(roomType)
+        });
+      }
+      roomState[roomType] = { count: nextCount, instances };
+    }
+
+    function renderRoomControls() {
+      const wrap = document.getElementById("roomControls");
+      wrap.innerHTML = "";
+
+      getRoomTypes().forEach((roomType) => {
+        const spec = ROOM_SPECS[roomType];
+        syncRoomState(roomType, roomState[roomType]?.count ?? spec.default_room_count ?? 0);
+        const room = roomState[roomType];
+
+        const card = document.createElement("div");
+        card.className = "room-card";
+
+        const header = document.createElement("div");
+        header.className = "room-header";
+        header.innerHTML = `
+          <div class="room-name">${titleCase(roomType)}</div>
+          <div class="room-meta">${room.instances.length} room(s) • ${spec.default_machine_count_per_room || 0} machine(s) each</div>
+        `;
+
+        const desc = document.createElement("p");
+        desc.className = "room-desc";
+        desc.textContent = spec.description || "";
+
+        const countLabel = document.createElement("label");
+        countLabel.textContent = "Room Count";
+        const countInput = document.createElement("input");
+        countInput.type = "number";
+        countInput.min = "0";
+        countInput.step = "1";
+        countInput.value = room.count;
+        countInput.dataset.role = "room-count";
+        countInput.dataset.roomType = roomType;
+        countLabel.appendChild(countInput);
+
+        card.appendChild(header);
+        card.appendChild(desc);
+        card.appendChild(countLabel);
+
+        room.instances.forEach((instance, index) => {
+          const row = document.createElement("div");
+          row.className = "instance-grid";
+          const options = (spec.machine_type_names || [])
+            .map((variant) => `<option value="${variant}" ${variant === instance.variant ? "selected" : ""}>${titleCase(variant)}</option>`)
+            .join("");
+          row.innerHTML = `
+            <div class="instance-tag">Room ${index + 1}</div>
+            <label>Variant
+              <select data-role="room-variant" data-room-type="${roomType}" data-index="${index}">
+                ${options}
+              </select>
+            </label>
+            <label>Door Width (in)
+              <input type="number" min="24" step="1" value="${instance.door_width}" data-role="room-door" data-room-type="${roomType}" data-index="${index}">
+            </label>
+          `;
+          card.appendChild(row);
+        });
+
+        wrap.appendChild(card);
+      });
+    }
+
+    function readNumber(id, fallback) {
+      const parsed = parseFloat(document.getElementById(id).value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function collectPayload() {
+      const rooms = {};
+      getRoomTypes().forEach((roomType) => {
+        const room = roomState[roomType] || { count: 0, instances: [] };
+        rooms[roomType] = {
+          count: room.count,
+          instances: room.instances.map((instance) => ({
+            variant: instance.variant,
+            door_width: Number(instance.door_width)
+          }))
+        };
+      });
+
+      return {
+        shell: {
+          w: Math.max(120, readNumber("shellW", DEFAULT_INPUT.shell.w)),
+          d: Math.max(120, readNumber("shellD", DEFAULT_INPUT.shell.d))
+        },
+        entry_edge: document.getElementById("entryEdge").value,
+        lounge: {
+          auto_size: document.getElementById("loungeAutoSize").checked,
+          w: Math.max(96, readNumber("loungeW", DEFAULT_INPUT.lounge.w)),
+          d: Math.max(96, readNumber("loungeD", DEFAULT_INPUT.lounge.d))
+        },
+        rooms,
+        include_debug: document.getElementById("includeDebug").checked
+      };
+    }
+
+    function downloadTextFile(filename, text) {
+      const blob = new Blob([text], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportLayout() {
+      if (!latestResult) {
+        window.alert("Generate a spa layout before exporting.");
+        return;
+      }
+      const payload = {
+        meta: {
+          format: "planetgen_spa_layout_export",
+          version: "1.0",
+          units: "inches"
+        },
+        shell: latestResult.shell,
+        entry_edge: latestResult.entry_edge,
+        rooms: latestResult.rooms,
+        doors: latestResult.doors,
+        walls: latestResult.walls,
+        placements: latestResult.placements,
+        warnings: latestResult.warnings || [],
+        summary: latestResult.debug?.summary || {}
+      };
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      downloadTextFile(`planetgen-spa-layout-${stamp}.json`, JSON.stringify(payload, null, 2));
+    }
+
+    function getRenderSettings() {
+      return {
+        showWalls: document.getElementById("showWalls").checked,
+        showDoors: document.getElementById("showDoors").checked,
+        showMachines: document.getElementById("showMachines").checked,
+        showLabels: document.getElementById("showLabels").checked,
+        showGrid: document.getElementById("showGrid").checked
+      };
+    }
+
+    function roomColor(roomType) {
+      const palette = {
+        lounge: "#d0a25a",
+        hydromassage_room: "#3a7ca5",
+        massage_chair_room: "#6f4e7c",
+        tanning_room: "#b76d31",
+        hybrid_room: "#8e7343",
+        total_body_enhancement_room: "#678d58",
+        wellness_pod_room: "#4c8b8c",
+        cryolounge_room: "#56739a"
+      };
+      return palette[roomType] || "#6a6f75";
+    }
+
+    function draw(result) {
+      latestResult = result;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!result || !result.shell) return;
+
+      const shell = result.shell;
+      const pad = 28;
+      const scale = Math.min((canvas.width - pad * 2) / shell.w, (canvas.height - pad * 2) / shell.d);
+      const drawW = shell.w * scale;
+      const drawD = shell.d * scale;
+      const ox = (canvas.width - drawW) / 2;
+      const oy = (canvas.height - drawD) / 2;
+      const { showWalls, showDoors, showMachines, showLabels, showGrid } = getRenderSettings();
+
+      const toCanvasRect = (rect) => ({
+        x: ox + rect.x * scale,
+        y: oy + drawD - (rect.y + rect.d) * scale,
+        w: rect.w * scale,
+        h: rect.d * scale
+      });
+
+      const toCanvasPoint = (x, y) => ({
+        x: ox + x * scale,
+        y: oy + drawD - y * scale
+      });
+
+      if (showGrid) {
+        ctx.save();
+        ctx.strokeStyle = "#eee1ce";
+        ctx.lineWidth = 1;
+        const step = 60;
+        for (let gx = 0; gx <= shell.w; gx += step) {
+          const x = ox + gx * scale;
+          ctx.beginPath();
+          ctx.moveTo(x, oy);
+          ctx.lineTo(x, oy + drawD);
+          ctx.stroke();
+        }
+        for (let gy = 0; gy <= shell.d; gy += step) {
+          const y = oy + drawD - gy * scale;
+          ctx.beginPath();
+          ctx.moveTo(ox, y);
+          ctx.lineTo(ox + drawW, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      (result.rooms || []).forEach((room) => {
+        const rect = toCanvasRect(room.rect);
+        ctx.save();
+        ctx.fillStyle = roomColor(room.room_type);
+        ctx.globalAlpha = room.room_type === "lounge" ? 0.38 : 0.22;
+        ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = roomColor(room.room_type);
+        ctx.lineWidth = room.room_type === "lounge" ? 2.2 : 1.5;
+        ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+        ctx.restore();
+
+        if (showLabels) {
+          ctx.save();
+          ctx.fillStyle = "#132029";
+          ctx.font = room.room_type === "lounge" ? "700 13px Bahnschrift" : "12px Bahnschrift";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(titleCase(room.room_type), rect.x + rect.w / 2, rect.y + rect.h / 2);
+          ctx.restore();
+        }
+      });
+
+      if (showMachines) {
+        (result.placements || []).forEach((placement) => {
+          const rect = toCanvasRect(placement.machine);
+          ctx.save();
+          ctx.fillStyle = "#182027";
+          ctx.globalAlpha = 0.72;
+          ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+          ctx.restore();
+        });
+      }
+
+      if (showWalls) {
+        ctx.save();
+        ctx.strokeStyle = "#11181f";
+        ctx.lineWidth = 2;
+        (result.walls || []).forEach((wall) => {
+          const a = toCanvasPoint(wall.x1, wall.y1);
+          const b = toCanvasPoint(wall.x2, wall.y2);
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      if (showDoors) {
+        ctx.save();
+        ctx.strokeStyle = "#0e6a60";
+        ctx.lineWidth = 4;
+        (result.doors || []).forEach((door) => {
+          const a = toCanvasPoint(door.x1, door.y1);
+          const b = toCanvasPoint(door.x2, door.y2);
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.strokeStyle = "#091117";
+      ctx.lineWidth = 2.2;
+      ctx.strokeRect(ox, oy, drawW, drawD);
+      ctx.restore();
+    }
+
+    function setSummaryCards(result) {
+      const summary = result?.debug?.summary || {};
+      const cards = document.getElementById("summaryCards");
+      cards.innerHTML = "";
+      [
+        { key: "Placed Rooms", value: summary.placed_room_total ?? 0, warn: false },
+        { key: "Unplaced Rooms", value: summary.unplaced_room_total ?? 0, warn: Number(summary.unplaced_room_total || 0) > 0 },
+        { key: "Machines", value: summary.placed_machine_total ?? 0, warn: false },
+        { key: "Warnings", value: summary.warning_total ?? 0, warn: Number(summary.warning_total || 0) > 0 }
+      ].forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `<div class="k">${item.key}</div><div class="v ${item.warn ? "status-warn" : "status-ok"}">${item.value}</div>`;
+        cards.appendChild(card);
+      });
+    }
+
+    function setRoomTable(result) {
+      const body = document.getElementById("roomTableBody");
+      body.innerHTML = "";
+      const rows = result?.debug?.requested_by_type || [];
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${titleCase(row.room_type)}</td>
+          <td>${row.requested}</td>
+          <td>${row.placed}</td>
+          <td class="${row.unplaced > 0 ? "status-warn" : "status-ok"}">${row.unplaced}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function setWarnings(result) {
+      const list = document.getElementById("warningList");
+      list.innerHTML = "";
+      const warnings = result?.warnings || [];
+      if (!warnings.length) {
+        const item = document.createElement("li");
+        item.textContent = "No placement warnings.";
+        item.className = "status-ok";
+        list.appendChild(item);
+        return;
+      }
+      warnings.forEach((warning) => {
+        const item = document.createElement("li");
+        item.textContent = warning;
+        list.appendChild(item);
+      });
+    }
+
+    function setRawDebug(result) {
+      document.getElementById("rawDebug").textContent = JSON.stringify({
+        input: result?.input,
+        warnings: result?.warnings,
+        unplaced_rooms: result?.unplaced_rooms,
+        debug: result?.debug
+      }, null, 2);
+    }
+
+    async function run() {
+      const payload = collectPayload();
+      const res = await fetch("/api/spa-layout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      draw(json);
+      setSummaryCards(json);
+      setRoomTable(json);
+      setWarnings(json);
+      setRawDebug(json);
+    }
+
+    function scheduleRun() {
+      clearTimeout(autoRunTimer);
+      autoRunTimer = setTimeout(() => {
+        run();
+      }, AUTO_RUN_DELAY_MS);
+    }
+
+    function resetDefaults() {
+      document.getElementById("shellW").value = DEFAULT_INPUT.shell.w;
+      document.getElementById("shellD").value = DEFAULT_INPUT.shell.d;
+      document.getElementById("entryEdge").value = DEFAULT_INPUT.entry_edge;
+      document.getElementById("loungeAutoSize").checked = !!DEFAULT_INPUT.lounge.auto_size;
+      document.getElementById("loungeW").value = DEFAULT_INPUT.lounge.w;
+      document.getElementById("loungeD").value = DEFAULT_INPUT.lounge.d;
+      document.getElementById("showWalls").checked = true;
+      document.getElementById("showDoors").checked = true;
+      document.getElementById("showMachines").checked = true;
+      document.getElementById("showLabels").checked = true;
+      document.getElementById("showGrid").checked = false;
+      document.getElementById("includeDebug").checked = !!DEFAULT_INPUT.include_debug;
+      roomState = JSON.parse(JSON.stringify(DEFAULT_INPUT.rooms));
+      renderRoomControls();
+      run();
+    }
+
+    function wireEvents() {
+      document.getElementById("generateBtn").addEventListener("click", run);
+      document.getElementById("exportBtn").addEventListener("click", exportLayout);
+      document.getElementById("resetBtn").addEventListener("click", resetDefaults);
+
+      document.getElementById("roomControls").addEventListener("input", (event) => {
+        const target = event.target;
+        if (!target || !target.dataset) return;
+        const roomType = target.dataset.roomType;
+        if (!roomType) return;
+
+        if (target.dataset.role === "room-count") {
+          syncRoomState(roomType, parseInt(target.value, 10));
+          renderRoomControls();
+          scheduleRun();
+          return;
+        }
+
+        const index = parseInt(target.dataset.index, 10);
+        if (!Number.isFinite(index)) return;
+        const room = roomState[roomType];
+        if (!room || !room.instances[index]) return;
+
+        if (target.dataset.role === "room-variant") {
+          room.instances[index].variant = target.value;
+        }
+        if (target.dataset.role === "room-door") {
+          room.instances[index].door_width = Math.max(24, parseFloat(target.value) || getDefaultDoorWidth(roomType));
+        }
+        scheduleRun();
+      });
+
+      const controls = document.querySelector(".panel .panel-body");
+      controls.addEventListener("input", (event) => {
+        const target = event.target;
+        if (!target || target.closest("#roomControls")) return;
+        scheduleRun();
+      });
+      controls.addEventListener("change", (event) => {
+        const target = event.target;
+        if (!target || target.closest("#roomControls")) return;
+        if (["showWalls", "showDoors", "showMachines", "showLabels", "showGrid"].includes(target.id)) {
+          if (latestResult) draw(latestResult);
+          return;
+        }
+        scheduleRun();
+      });
+    }
+
+    function init() {
+      renderRoomControls();
+      wireEvents();
+      resetDefaults();
+    }
+
+    init();
+  </script>
+</body>
+</html>

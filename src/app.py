@@ -3,11 +3,16 @@ import copy
 from pathlib import Path
 from flask import Flask, request, jsonify, render_template
 from placer import place_layout
+from spa_placer import build_room_spec_index, build_spa_defaults, generate_spa_layout, sanitize_spa_request
 
 app = Flask(__name__)
 
 ROOT_DIR = Path(__file__).resolve().parent
 EQUIPMENT = json.loads((ROOT_DIR / "equipment.json").read_text())
+SPA_SPEC = json.loads((ROOT_DIR.parent / "data" / "bcs_spec.json").read_text())
+SPA_EQUIPMENT = json.loads((ROOT_DIR / "spa_equipment.json").read_text())
+SPA_ROOM_SPECS = build_room_spec_index(SPA_SPEC)
+DEFAULT_SPA_INPUT = build_spa_defaults(SPA_SPEC)
 
 DEFAULT_COUNTS = {
     "TREADMILL": 20,
@@ -154,6 +159,17 @@ def index():
     )
 
 
+@app.get("/spa")
+def spa():
+    return render_template(
+        "spa.html",
+        spa_spec=SPA_SPEC,
+        spa_equipment=SPA_EQUIPMENT,
+        spa_room_specs=SPA_ROOM_SPECS,
+        default_spa_input=DEFAULT_SPA_INPUT,
+    )
+
+
 @app.post("/api/layout")
 def api_layout():
     payload = request.get_json(force=True) or {}
@@ -182,6 +198,23 @@ def api_layout():
         "placement": placement,
         "include_debug": include_debug,
     }
+    return jsonify(result)
+
+
+@app.post("/api/spa-layout")
+def api_spa_layout():
+    payload = request.get_json(force=True) or {}
+    sanitized = sanitize_spa_request(payload, SPA_SPEC)
+    result = generate_spa_layout(
+        shell=sanitized["shell"],
+        entry_edge=sanitized["entry_edge"],
+        lounge_input=sanitized["lounge"],
+        rooms_input=sanitized["rooms"],
+        room_specs=SPA_ROOM_SPECS,
+        equipment=SPA_EQUIPMENT,
+        include_debug=sanitized["include_debug"],
+    )
+    result["input"] = sanitized
     return jsonify(result)
 
 

@@ -51,6 +51,16 @@
       border-bottom: 1px solid var(--line);
       font-weight: 700;
       letter-spacing: 0.2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-link {
+      color: #9d5a1e;
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 700;
     }
     .panel-body {
       padding: 10px 12px;
@@ -251,7 +261,10 @@
 <body>
   <div class="shell">
     <section class="panel">
-      <div class="panel-header">Layout Controls</div>
+      <div class="panel-header">
+        <span>Layout Controls</span>
+        <a class="nav-link" href="/spa">Open BCS Spa Planner</a>
+      </div>
       <div class="panel-body">
         <div class="section">
           <p class="section-title">Gym</p>
