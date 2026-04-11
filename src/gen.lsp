@@ -337,6 +337,50 @@
   (pg:add-line x1 y1 x2 y2 "A-N-DOOR")
 )
 
+(defun pg:com-array->list (value)
+  (cond
+    ((= (type value) 'VARIANT)
+      (vlax-safearray->list (vlax-variant-value value))
+    )
+    (T
+      (vlax-safearray->list value)
+    )
+  )
+)
+
+(defun pg:get-bounding-box-points (obj / minPt maxPt)
+  (vla-GetBoundingBox obj 'minPt 'maxPt)
+  (list
+    (pg:com-array->list minPt)
+    (pg:com-array->list maxPt)
+  )
+)
+
+(defun pg:align-inserted-block-to-machine (insertObj item / machine bbox minPt maxPt targetX targetY targetW targetD targetCx targetCy actualCx actualCy dx dy)
+  (setq machine (pg:json-get item "machine"))
+  (if (and insertObj (listp machine))
+    (progn
+      (setq bbox (pg:get-bounding-box-points insertObj))
+      (setq minPt (car bbox))
+      (setq maxPt (cadr bbox))
+      (setq targetX (pg:number (pg:json-get machine "x") 0.0))
+      (setq targetY (pg:number (pg:json-get machine "y") 0.0))
+      (setq targetW (pg:number (pg:json-get machine "w") 0.0))
+      (setq targetD (pg:number (pg:json-get machine "d") 0.0))
+      (setq targetCx (+ targetX (/ targetW 2.0)))
+      (setq targetCy (+ targetY (/ targetD 2.0)))
+      (setq actualCx (/ (+ (car minPt) (car maxPt)) 2.0))
+      (setq actualCy (/ (+ (cadr minPt) (cadr maxPt)) 2.0))
+      (setq dx (- targetCx actualCx))
+      (setq dy (- targetCy actualCy))
+      (if (or (> (pg:abs dx) 0.0001) (> (pg:abs dy) 0.0001))
+        (vla-Move insertObj (vlax-3d-point '(0.0 0.0 0.0)) (vlax-3d-point (list dx dy 0.0)))
+      )
+    )
+  )
+  insertObj
+)
+
 (defun pg:insert-placement (item / blockName point x y z sx sy sz rot itemType space insertObj)
   (setq itemType (pg:string (pg:json-get item "type") "UNKNOWN"))
   (setq blockName (pg:string (pg:json-get item "block_name") ""))
@@ -387,16 +431,13 @@
         )
         (prompt (strcat "\nFailed to insert " itemType " using " blockName "."))
       )
-      (if insertObj
-        T
-        nil
-      )
+      insertObj
     )
   )
 )
 
 (defun c:gen ( / path text data meta format placements placementsPair walls wallsPair doors doorsPair placedCount skippedCount wallCount doorCount)
-  (setq path (getfiled "Select Planetgen layout JSON" "" "json" 16))
+  (setq path (getfiled "Select Planetgen layout JSON" (strcat (getenv "USERPROFILE") "\\Downloads\\") "json" 16))
 
   (if (or (null path) (= path ""))
     (prompt "\nNo JSON file selected.")
@@ -457,7 +498,7 @@
                     (progn
                       (pg:debug (strcat "Found " (itoa (length placements)) " placement entries."))
                       (foreach item placements
-                        (if (pg:insert-placement item)
+                        (if (pg:align-inserted-block-to-machine (pg:insert-placement item) item)
                           (setq placedCount (1+ placedCount))
                           (setq skippedCount (1+ skippedCount))
                         )

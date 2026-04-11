@@ -105,6 +105,7 @@ class SpaLayoutTests(unittest.TestCase):
         self.assertTrue(all(not wall["full_height"] for wall in partial_walls))
         self.assertTrue(all(abs(wall["thickness"] - 4.875) < 1e-6 for wall in partial_walls))
         self.assertAlmostEqual(result["wall_thickness"], 4.875)
+        self.assertFalse(any(wall.get("source") == "shell" for wall in result["walls"]))
 
     def test_optional_rooms_default_to_zero_and_overrides_are_honored(self):
         spec, equipment, room_specs, _, _ = load_spa_inputs()

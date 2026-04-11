@@ -1170,7 +1170,6 @@ def generate_spa_layout(
     )
 
     walls: List[Dict[str, Any]] = []
-    walls.extend(_rect_wall_segments(shell_rect, source="shell", source_id="shell", openings=[], wall_thickness=wall_thickness))
     walls.extend(_rect_wall_segments(lounge_rect, source="room", source_id="lounge", openings=lounge_openings, wall_thickness=wall_thickness))
     if hallway_rect is not None:
         walls.extend(_rect_wall_segments(hallway_rect, source="hallway", source_id="hallway", openings=hallway_openings, wall_thickness=wall_thickness))
