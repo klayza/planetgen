@@ -83,7 +83,7 @@
       font-size: 0.82rem;
       color: var(--muted);
     }
-    input[type="number"], select {
+    input[type="number"], input[type="range"], select {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -101,6 +101,12 @@
       font-size: 0.85rem;
       color: var(--muted);
       margin-top: 6px;
+    }
+    .slider-readout {
+      font-size: 0.76rem;
+      color: var(--accent);
+      margin-top: 4px;
+      font-weight: 700;
     }
     .actions {
       display: flex;
@@ -281,6 +287,24 @@
         </div>
 
         <div class="section">
+          <p class="section-title">Hallway</p>
+          <div class="grid-2">
+            <label>Position
+              <input id="hallwayPosition" type="range" min="0" max="1" step="0.01">
+              <div class="slider-readout" id="hallwayPositionValue"></div>
+            </label>
+            <label>Length (ft)
+              <input id="hallwayLengthFeet" type="range" min="0" max="40" step="0.5">
+              <div class="slider-readout" id="hallwayLengthValue"></div>
+            </label>
+          </div>
+          <div class="grid-2">
+            <label>Width (ft)<input id="hallwayWidthFeet" type="number" step="0.1" readonly></label>
+            <label class="check-row"><input id="hallwayEnabled" type="checkbox">Enable hallway when length is greater than zero</label>
+          </div>
+        </div>
+
+        <div class="section">
           <p class="section-title">Rooms</p>
           <div id="roomControls"></div>
         </div>
@@ -358,6 +382,13 @@
 
     function titleCase(value) {
       return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    function syncHallwayReadouts() {
+      const position = parseFloat(document.getElementById("hallwayPosition").value || "0");
+      const lengthFeet = parseFloat(document.getElementById("hallwayLengthFeet").value || "0");
+      document.getElementById("hallwayPositionValue").textContent = `${Math.round(position * 100)}% around the allowed lounge border`;
+      document.getElementById("hallwayLengthValue").textContent = `${lengthFeet.toFixed(1)} ft (${Math.round(lengthFeet * 12)} in)`;
     }
 
     function getRoomTypes() {
@@ -480,6 +511,12 @@
           w: Math.max(96, readNumber("loungeW", DEFAULT_INPUT.lounge.w)),
           d: Math.max(96, readNumber("loungeD", DEFAULT_INPUT.lounge.d))
         },
+        hallway: {
+          enabled: document.getElementById("hallwayEnabled").checked,
+          position: Math.max(0, Math.min(1, parseFloat(document.getElementById("hallwayPosition").value || DEFAULT_INPUT.hallway.position || 0))),
+          length: Math.max(0, readNumber("hallwayLengthFeet", (DEFAULT_INPUT.hallway.length || 0) / 12) * 12),
+          width: Number(DEFAULT_INPUT.hallway.width || 60)
+        },
         rooms,
         include_debug: document.getElementById("includeDebug").checked
       };
@@ -510,6 +547,7 @@
         },
         shell: latestResult.shell,
         entry_edge: latestResult.entry_edge,
+        hallway: latestResult.hallway,
         rooms: latestResult.rooms,
         doors: latestResult.doors,
         walls: latestResult.walls,
@@ -591,6 +629,31 @@
           ctx.stroke();
         }
         ctx.restore();
+      }
+
+      if (result.hallway?.rect) {
+        const hallRect = toCanvasRect(result.hallway.rect);
+        ctx.save();
+        ctx.fillStyle = "#7fb6be";
+        ctx.globalAlpha = 0.28;
+        ctx.fillRect(hallRect.x, hallRect.y, hallRect.w, hallRect.h);
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle = "#2f6570";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(hallRect.x, hallRect.y, hallRect.w, hallRect.h);
+        ctx.restore();
+
+        if (showLabels) {
+          ctx.save();
+          ctx.fillStyle = "#1c4046";
+          ctx.font = "700 12px Bahnschrift";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Hallway", hallRect.x + hallRect.w / 2, hallRect.y + hallRect.h / 2);
+          ctx.restore();
+        }
       }
 
       (result.rooms || []).forEach((room) => {
@@ -725,6 +788,7 @@
     function setRawDebug(result) {
       document.getElementById("rawDebug").textContent = JSON.stringify({
         input: result?.input,
+        hallway: result?.hallway,
         warnings: result?.warnings,
         unplaced_rooms: result?.unplaced_rooms,
         debug: result?.debug
@@ -760,6 +824,10 @@
       document.getElementById("loungeAutoSize").checked = !!DEFAULT_INPUT.lounge.auto_size;
       document.getElementById("loungeW").value = DEFAULT_INPUT.lounge.w;
       document.getElementById("loungeD").value = DEFAULT_INPUT.lounge.d;
+      document.getElementById("hallwayEnabled").checked = !!DEFAULT_INPUT.hallway.enabled;
+      document.getElementById("hallwayPosition").value = DEFAULT_INPUT.hallway.position;
+      document.getElementById("hallwayLengthFeet").value = (DEFAULT_INPUT.hallway.length || 0) / 12;
+      document.getElementById("hallwayWidthFeet").value = ((DEFAULT_INPUT.hallway.width || 60) / 12).toFixed(1);
       document.getElementById("showWalls").checked = true;
       document.getElementById("showDoors").checked = true;
       document.getElementById("showMachines").checked = true;
@@ -767,6 +835,7 @@
       document.getElementById("showGrid").checked = false;
       document.getElementById("includeDebug").checked = !!DEFAULT_INPUT.include_debug;
       roomState = JSON.parse(JSON.stringify(DEFAULT_INPUT.rooms));
+      syncHallwayReadouts();
       renderRoomControls();
       run();
     }
@@ -807,6 +876,9 @@
       controls.addEventListener("input", (event) => {
         const target = event.target;
         if (!target || target.closest("#roomControls")) return;
+        if (["hallwayPosition", "hallwayLengthFeet"].includes(target.id)) {
+          syncHallwayReadouts();
+        }
         scheduleRun();
       });
       controls.addEventListener("change", (event) => {

@@ -209,6 +209,7 @@ def api_spa_layout():
         shell=sanitized["shell"],
         entry_edge=sanitized["entry_edge"],
         lounge_input=sanitized["lounge"],
+        hallway_input=sanitized["hallway"],
         rooms_input=sanitized["rooms"],
         room_specs=SPA_ROOM_SPECS,
         equipment=SPA_EQUIPMENT,

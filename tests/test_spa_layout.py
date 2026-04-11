@@ -31,6 +31,8 @@ class SpaLayoutTests(unittest.TestCase):
         self.assertEqual(defaults["rooms"]["wellness_pod_room"]["count"], 0)
         self.assertEqual(room_specs["lounge"]["default_room_count"], 1)
         self.assertTrue(room_specs["hydromassage_room"]["fixed_room_count"])
+        self.assertEqual(defaults["hallway"]["width"], 60)
+        self.assertEqual(defaults["hallway"]["length"], 0)
 
     def test_default_layout_keeps_entry_edge_clear(self):
         _, equipment, room_specs, _, sanitized = load_spa_inputs()
@@ -38,6 +40,7 @@ class SpaLayoutTests(unittest.TestCase):
             shell=sanitized["shell"],
             entry_edge=sanitized["entry_edge"],
             lounge_input=sanitized["lounge"],
+            hallway_input=sanitized["hallway"],
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
@@ -53,6 +56,7 @@ class SpaLayoutTests(unittest.TestCase):
             shell=sanitized["shell"],
             entry_edge=sanitized["entry_edge"],
             lounge_input=sanitized["lounge"],
+            hallway_input=sanitized["hallway"],
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
@@ -120,6 +124,7 @@ class SpaLayoutTests(unittest.TestCase):
             shell=sanitized["shell"],
             entry_edge=sanitized["entry_edge"],
             lounge_input=sanitized["lounge"],
+            hallway_input=sanitized["hallway"],
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
@@ -150,6 +155,69 @@ class SpaLayoutTests(unittest.TestCase):
         self.assertEqual(sanitized["rooms"]["hydromassage_room"]["count"], 1)
         self.assertEqual(len(sanitized["rooms"]["hydromassage_room"]["instances"]), 1)
 
+    def test_hallway_length_zero_disables_hallway(self):
+        spec, _, _, _, _ = load_spa_inputs()
+        sanitized = sanitize_spa_request({"hallway": {"enabled": True, "position": 0.5, "length": 0, "width": 60}}, spec)
+        self.assertFalse(sanitized["hallway"]["enabled"])
+
+    def test_hallway_position_stays_off_entry_edge_and_exports_geometry(self):
+        spec, equipment, room_specs, _, _ = load_spa_inputs()
+        payload = {
+            "shell": {"w": 1400, "d": 1000},
+            "entry_edge": "south",
+            "lounge": {"auto_size": False, "w": 320, "d": 260},
+            "hallway": {"enabled": True, "position": 0.0, "length": 240, "width": 60},
+            "rooms": {
+                "hydromassage_room": {"count": 1, "instances": [{"variant": "hydromassage_bed", "door_width": 36, "machine_count": 4}]},
+                "massage_chair_room": {"count": 1, "instances": [{"variant": "massage_chair_standard", "door_width": 36}]},
+            },
+            "include_debug": True,
+        }
+        sanitized = sanitize_spa_request(payload, spec)
+        result = generate_spa_layout(
+            shell=sanitized["shell"],
+            entry_edge=sanitized["entry_edge"],
+            lounge_input=sanitized["lounge"],
+            hallway_input=sanitized["hallway"],
+            rooms_input=sanitized["rooms"],
+            room_specs=room_specs,
+            equipment=equipment,
+            include_debug=True,
+        )
+        self.assertTrue(result["hallway"]["enabled"])
+        self.assertNotEqual(result["hallway"]["edge"], "south")
+        self.assertIsNotNone(result["hallway"]["rect"])
+        self.assertIsNotNone(result["hallway"]["opening"])
+        self.assertIsNotNone(result["hallway"]["end_rect"])
+
+    def test_hydromassage_prefers_hallway_end_when_available(self):
+        spec, equipment, room_specs, _, _ = load_spa_inputs()
+        payload = {
+            "shell": {"w": 1600, "d": 1300},
+            "entry_edge": "south",
+            "lounge": {"auto_size": False, "w": 320, "d": 260},
+            "hallway": {"enabled": True, "position": 0.5, "length": 320, "width": 60},
+            "rooms": {
+                "hydromassage_room": {"count": 1, "instances": [{"variant": "hydromassage_bed", "door_width": 36, "machine_count": 4}]},
+                "massage_chair_room": {"count": 1, "instances": [{"variant": "massage_chair_standard", "door_width": 36}]},
+            },
+            "include_debug": True,
+        }
+        sanitized = sanitize_spa_request(payload, spec)
+        result = generate_spa_layout(
+            shell=sanitized["shell"],
+            entry_edge=sanitized["entry_edge"],
+            lounge_input=sanitized["lounge"],
+            hallway_input=sanitized["hallway"],
+            rooms_input=sanitized["rooms"],
+            room_specs=room_specs,
+            equipment=equipment,
+            include_debug=True,
+        )
+        hydro_room = next(room for room in result["rooms"] if room["room_type"] == "hydromassage_room")
+        self.assertEqual(hydro_room["attached_to"], "hallway_end")
+        self.assertEqual(hydro_room["attachment_slot"], "hallway_end")
+
     def test_small_shell_returns_unplaced_room_warnings(self):
         spec, equipment, room_specs, _, _ = load_spa_inputs()
         payload = {
@@ -175,6 +243,7 @@ class SpaLayoutTests(unittest.TestCase):
             shell=sanitized["shell"],
             entry_edge=sanitized["entry_edge"],
             lounge_input=sanitized["lounge"],
+            hallway_input=sanitized["hallway"],
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
