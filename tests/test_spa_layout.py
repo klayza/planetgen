@@ -24,11 +24,13 @@ class SpaLayoutTests(unittest.TestCase):
         spec, _, room_specs, defaults, _ = load_spa_inputs()
         self.assertIn("black_card_spa", spec)
         self.assertEqual(defaults["rooms"]["hydromassage_room"]["count"], 1)
+        self.assertEqual(defaults["rooms"]["hydromassage_room"]["instances"][0]["machine_count"], 4)
         self.assertEqual(defaults["rooms"]["massage_chair_room"]["count"], 1)
         self.assertEqual(defaults["rooms"]["tanning_room"]["count"], 2)
         self.assertEqual(defaults["rooms"]["hybrid_room"]["count"], 1)
         self.assertEqual(defaults["rooms"]["wellness_pod_room"]["count"], 0)
         self.assertEqual(room_specs["lounge"]["default_room_count"], 1)
+        self.assertTrue(room_specs["hydromassage_room"]["fixed_room_count"])
 
     def test_default_layout_keeps_entry_edge_clear(self):
         _, equipment, room_specs, _, sanitized = load_spa_inputs()
@@ -60,7 +62,7 @@ class SpaLayoutTests(unittest.TestCase):
         for room in result["rooms"]:
             rooms_by_type.setdefault(room["room_type"], []).append(room)
 
-        self.assertEqual(rooms_by_type["hydromassage_room"][0]["machine_count"], 2)
+        self.assertEqual(rooms_by_type["hydromassage_room"][0]["machine_count"], 4)
         self.assertEqual(rooms_by_type["massage_chair_room"][0]["machine_count"], 2)
         self.assertEqual(rooms_by_type["tanning_room"][0]["machine_count"], 1)
         self.assertEqual(rooms_by_type["hybrid_room"][0]["machine_count"], 1)
@@ -72,9 +74,28 @@ class SpaLayoutTests(unittest.TestCase):
         for placement in result["placements"]:
             placements_by_room.setdefault(placement["room_id"], []).append(placement)
 
-        self.assertEqual(len(placements_by_room["hydromassage_room-1"]), 2)
+        self.assertEqual(len(placements_by_room["hydromassage_room-1"]), 4)
         self.assertEqual(len(placements_by_room["massage_chair_room-1"]), 2)
         self.assertEqual(len(placements_by_room["hybrid_room-1"]), 1)
+
+        hydro_room = rooms_by_type["hydromassage_room"][0]
+        hydro_rect = hydro_room["rect"]
+        hydro_placements = sorted(placements_by_room["hydromassage_room-1"], key=lambda item: item["machine"]["x"])
+        if hydro_room["attached_edge"] in {"north", "south"}:
+            if hydro_room["attached_edge"] == "north":
+                setback = hydro_rect["y"] + hydro_rect["d"] - max(item["machine"]["y"] + item["machine"]["d"] for item in hydro_placements)
+            else:
+                setback = min(item["machine"]["y"] for item in hydro_placements) - hydro_rect["y"]
+        else:
+            if hydro_room["attached_edge"] == "east":
+                setback = min(item["machine"]["x"] for item in hydro_placements) - hydro_rect["x"]
+            else:
+                setback = hydro_rect["x"] + hydro_rect["w"] - max(item["machine"]["x"] + item["machine"]["w"] for item in hydro_placements)
+        self.assertAlmostEqual(setback, 52.0)
+
+        partial_walls = [wall for wall in result["walls"] if wall.get("source_id") == "hydromassage_room-1" and wall.get("wall_type") == "partial_height"]
+        self.assertEqual(len(partial_walls), 4)
+        self.assertTrue(all(not wall["full_height"] for wall in partial_walls))
 
     def test_optional_rooms_default_to_zero_and_overrides_are_honored(self):
         spec, equipment, room_specs, _, _ = load_spa_inputs()
@@ -110,6 +131,24 @@ class SpaLayoutTests(unittest.TestCase):
         self.assertIn("wellness_pod_room-1", room_ids)
         self.assertEqual(room_ids["total_body_enhancement_room-1"]["door_width"], 42)
         self.assertEqual(room_ids["wellness_pod_room-1"]["door_width"], 44)
+
+    def test_hydromassage_room_count_is_fixed_to_one(self):
+        spec, _, _, _, _ = load_spa_inputs()
+        payload = {
+            "rooms": {
+                "hydromassage_room": {
+                    "count": 3,
+                    "instances": [
+                        {"variant": "hydromassage_bed", "door_width": 36, "machine_count": 4},
+                        {"variant": "hydromassage_bed", "door_width": 36, "machine_count": 4},
+                        {"variant": "hydromassage_bed", "door_width": 36, "machine_count": 4},
+                    ],
+                }
+            }
+        }
+        sanitized = sanitize_spa_request(payload, spec)
+        self.assertEqual(sanitized["rooms"]["hydromassage_room"]["count"], 1)
+        self.assertEqual(len(sanitized["rooms"]["hydromassage_room"]["instances"]), 1)
 
     def test_small_shell_returns_unplaced_room_warnings(self):
         spec, equipment, room_specs, _, _ = load_spa_inputs()

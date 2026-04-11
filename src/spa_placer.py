@@ -7,7 +7,9 @@ from typing import Any, Dict, Iterable, List, Tuple
 EDGE_ORDER = ("north", "east", "south", "west")
 ROOM_MACHINE_GAP = 18.0
 MIN_SUBROOM_DOOR_WIDTH = 24.0
-DEFAULT_SHELL = {"w": 840.0, "d": 660.0}
+DEFAULT_SHELL = {"w": 1100.0, "d": 800.0}
+DEFAULT_FULL_HEIGHT_WALL = 120.0
+DEFAULT_PARTIAL_HEIGHT_WALL = 50.0
 
 
 @dataclass
@@ -117,6 +119,7 @@ def build_spa_defaults(spa_spec: Dict[str, Any]) -> Dict[str, Any]:
                 {
                     "variant": default_variant,
                     "door_width": _float_or_default(spec.get("default_door_width"), 36.0, minimum=MIN_SUBROOM_DOOR_WIDTH),
+                    "machine_count": _int_or_default(spec.get("default_machine_count_per_room"), 1, minimum=0),
                 }
                 for _ in range(count)
             ],
@@ -178,6 +181,8 @@ def sanitize_spa_request(payload: Dict[str, Any], spa_spec: Dict[str, Any]) -> D
         room_default = defaults["rooms"][room_type]
         raw_room = raw_rooms.get(room_type) if isinstance(raw_rooms, dict) else None
         room_count = _int_or_default((raw_room or {}).get("count"), room_default["count"], minimum=0)
+        if _bool_or_default(spec.get("fixed_room_count"), False):
+            room_count = 1 if room_count > 0 or room_default["count"] > 0 else 0
         machine_types = spec.get("machine_type_names") or []
         default_variant = spec.get("default_variant")
         if default_variant not in machine_types and machine_types:
@@ -186,6 +191,12 @@ def sanitize_spa_request(payload: Dict[str, Any], spa_spec: Dict[str, Any]) -> D
         raw_instances = (raw_room or {}).get("instances")
         raw_instances = raw_instances if isinstance(raw_instances, list) else []
         default_door_width = _float_or_default(spec.get("default_door_width"), 36.0, minimum=MIN_SUBROOM_DOOR_WIDTH)
+        default_machine_count = _int_or_default(spec.get("default_machine_count_per_room"), 1, minimum=0)
+        minimum_machine_count = _int_or_default(
+            spec.get("minimum_machine_count_per_room"),
+            default_machine_count,
+            minimum=0,
+        )
 
         instances = []
         for index in range(room_count):
@@ -194,11 +205,12 @@ def sanitize_spa_request(payload: Dict[str, Any], spa_spec: Dict[str, Any]) -> D
             if variant not in machine_types:
                 variant = default_variant
             door_width = _float_or_default(raw_instance.get("door_width"), default_door_width, minimum=MIN_SUBROOM_DOOR_WIDTH)
+            machine_count = _int_or_default(raw_instance.get("machine_count"), default_machine_count, minimum=minimum_machine_count)
             instances.append(
                 {
                     "variant": variant,
                     "door_width": door_width,
-                    "machine_count": _int_or_default(spec.get("default_machine_count_per_room"), 1, minimum=0),
+                    "machine_count": machine_count,
                 }
             )
         sanitized_rooms[room_type] = {"count": room_count, "instances": instances}
@@ -218,6 +230,40 @@ def _estimate_room_size(
     machine_count: int,
     door_width: float,
 ) -> Dict[str, float]:
+    layout_rules = room_spec.get("layout_rules") or {}
+    if layout_rules.get("layout_pattern") == "two_wing":
+        slot_w = _float_or_default(layout_rules.get("wing_machine_slot_width"), 55.0, minimum=1.0)
+        center_opening = _float_or_default(layout_rules.get("center_opening_width"), max(door_width + 12.0, 72.0), minimum=door_width)
+        bottom_offset = _float_or_default(layout_rules.get("bottom_wall_to_machine"), 52.0, minimum=0.0)
+        top_clearance = _float_or_default(
+            layout_rules.get("top_wall_to_machine"),
+            max(_float_or_default((equipment_spec.get("clearance") or {}).get("back"), 12.0, minimum=0.0), 15.0),
+            minimum=0.0,
+        )
+        left_count = max(1, (machine_count + 1) // 2)
+        right_count = max(1, machine_count // 2)
+        span = (left_count * slot_w) + center_opening + (right_count * slot_w)
+        depth = bottom_offset + _float_or_default((equipment_spec.get("footprint") or {}).get("d"), 0.0, minimum=0.0) + top_clearance
+        return {
+            "layout_pattern": "two_wing",
+            "span": span,
+            "depth": depth,
+            "slot_w": slot_w,
+            "center_opening_width": center_opening,
+            "bottom_wall_to_machine": bottom_offset,
+            "top_wall_to_machine": top_clearance,
+            "machine_w": _float_or_default((equipment_spec.get("footprint") or {}).get("w"), 0.0, minimum=0.0),
+            "machine_d": _float_or_default((equipment_spec.get("footprint") or {}).get("d"), 0.0, minimum=0.0),
+            "left_count": left_count,
+            "right_count": right_count,
+            "partial_height_divider_required": _bool_or_default(layout_rules.get("partial_height_divider_required"), False),
+            "partial_height_divider_height": _float_or_default(
+                layout_rules.get("partial_height_divider_height"),
+                DEFAULT_PARTIAL_HEIGHT_WALL,
+                minimum=0.0,
+            ),
+        }
+
     footprint = equipment_spec.get("footprint") or {}
     clearance = equipment_spec.get("clearance") or {}
     machine_w = _float_or_default(footprint.get("w"), 0.0, minimum=0.0)
@@ -235,6 +281,7 @@ def _estimate_room_size(
         depth += 12.0
 
     return {
+        "layout_pattern": "linear",
         "span": span,
         "depth": depth,
         "machine_w": machine_w,
@@ -247,6 +294,138 @@ def _estimate_room_size(
     }
 
 
+def _hydromassage_local_rects(size: Dict[str, float]) -> Tuple[List[Rect], List[Dict[str, Any]]]:
+    left_count = max(1, int(size["left_count"]))
+    right_count = max(1, int(size["right_count"]))
+    slot_w = float(size["slot_w"])
+    center_opening = float(size["center_opening_width"])
+    machine_w = float(size["machine_w"])
+    machine_d = float(size["machine_d"])
+    bottom_offset = float(size["bottom_wall_to_machine"])
+    left_start = 0.0
+    right_start = left_count * slot_w + center_opening
+    machine_y = bottom_offset
+    local_rects: List[Rect] = []
+
+    for index in range(left_count):
+        slot_x = left_start + index * slot_w
+        machine_x = slot_x + max(0.0, (slot_w - machine_w) / 2.0)
+        local_rects.append(Rect(machine_x, machine_y, machine_w, machine_d))
+
+    for index in range(right_count):
+        slot_x = right_start + index * slot_w
+        machine_x = slot_x + max(0.0, (slot_w - machine_w) / 2.0)
+        local_rects.append(Rect(machine_x, machine_y, machine_w, machine_d))
+
+    partitions: List[Dict[str, Any]] = []
+    if size.get("partial_height_divider_required"):
+        wall_height = _float_or_default(size.get("partial_height_divider_height"), DEFAULT_PARTIAL_HEIGHT_WALL, minimum=0.0)
+        depth = float(size["depth"])
+        divider_length = min(max(42.0, depth * 0.48), max(42.0, depth - bottom_offset - 6.0))
+        y1 = max(0.0, depth - divider_length)
+        y2 = depth
+        divider_x_positions = []
+
+        for index in range(1, left_count):
+            divider_x_positions.append(index * slot_w)
+
+        divider_x_positions.append(left_count * slot_w)
+        divider_x_positions.append(left_count * slot_w + center_opening)
+
+        wing_start = left_count * slot_w + center_opening
+        for index in range(1, right_count):
+            divider_x_positions.append(wing_start + index * slot_w)
+
+        for divider_x in divider_x_positions:
+            partitions.append(
+                {
+                    "x1": divider_x,
+                    "y1": y1,
+                    "x2": divider_x,
+                    "y2": y2,
+                    "wall_type": "partial_height",
+                    "full_height": False,
+                    "height": wall_height,
+                    "source": "room_feature",
+                    "edge": "interior",
+                }
+            )
+
+    return local_rects, partitions
+
+
+def _transform_local_rect(local_rect: Rect, room_rect: Rect, open_edge: str) -> Rect:
+    if open_edge == "north":
+        return Rect(room_rect.x + local_rect.x, room_rect.y + local_rect.y, local_rect.w, local_rect.d)
+    if open_edge == "south":
+        return Rect(
+            room_rect.x + (room_rect.w - (local_rect.x + local_rect.w)),
+            room_rect.y + (room_rect.d - (local_rect.y + local_rect.d)),
+            local_rect.w,
+            local_rect.d,
+        )
+    if open_edge == "east":
+        return Rect(
+            room_rect.x + local_rect.y,
+            room_rect.y + (room_rect.d - (local_rect.x + local_rect.w)),
+            local_rect.d,
+            local_rect.w,
+        )
+    return Rect(
+        room_rect.x + (room_rect.w - (local_rect.y + local_rect.d)),
+        room_rect.y + local_rect.x,
+        local_rect.d,
+        local_rect.w,
+    )
+
+
+def _transform_local_segment(segment: Dict[str, Any], room_rect: Rect, open_edge: str) -> Dict[str, Any]:
+    x1 = float(segment["x1"])
+    y1 = float(segment["y1"])
+    x2 = float(segment["x2"])
+    y2 = float(segment["y2"])
+    width = room_rect.w
+    depth = room_rect.d
+
+    if open_edge == "north":
+        transformed = {
+            "x1": room_rect.x + x1,
+            "y1": room_rect.y + y1,
+            "x2": room_rect.x + x2,
+            "y2": room_rect.y + y2,
+        }
+    elif open_edge == "south":
+        transformed = {
+            "x1": room_rect.x + (width - x1),
+            "y1": room_rect.y + (depth - y1),
+            "x2": room_rect.x + (width - x2),
+            "y2": room_rect.y + (depth - y2),
+        }
+    elif open_edge == "east":
+        transformed = {
+            "x1": room_rect.x + y1,
+            "y1": room_rect.y + (depth - x1),
+            "x2": room_rect.x + y2,
+            "y2": room_rect.y + (depth - x2),
+        }
+    else:
+        transformed = {
+            "x1": room_rect.x + (width - y1),
+            "y1": room_rect.y + x1,
+            "x2": room_rect.x + (width - y2),
+            "y2": room_rect.y + x2,
+        }
+
+    if transformed["x1"] > transformed["x2"]:
+        transformed["x1"], transformed["x2"] = transformed["x2"], transformed["x1"]
+    if transformed["y1"] > transformed["y2"]:
+        transformed["y1"], transformed["y2"] = transformed["y2"], transformed["y1"]
+    for key in ("wall_type", "full_height", "height", "source", "edge"):
+        if key in segment:
+            transformed[key] = segment[key]
+    return transformed
+
+
 def _build_machine_placements(
     room: Dict[str, Any],
     room_rect: Rect,
@@ -257,6 +436,7 @@ def _build_machine_placements(
     count = room["machine_count"]
     machine_type = room["variant"]
     block_rotation = _float_or_default(equipment_spec.get("block_angle_offset"), 0.0, minimum=0.0)
+    open_edge = _opposite_edge(attached_edge)
     edge_rotation = {
         "north": 180.0,
         "east": 270.0,
@@ -264,6 +444,26 @@ def _build_machine_placements(
         "west": 90.0,
     }[attached_edge]
     placements: List[Dict[str, Any]] = []
+
+    if size.get("layout_pattern") == "two_wing":
+        local_rects, _ = _hydromassage_local_rects(size)
+        for index, local_rect in enumerate(local_rects[:count]):
+            machine_rect = _transform_local_rect(local_rect, room_rect, open_edge=open_edge)
+            placements.append(
+                {
+                    "id": f"{room['id']}-machine-{index + 1}",
+                    "room_id": room["id"],
+                    "room_type": room["room_type"],
+                    "type": machine_type,
+                    "block_name": equipment_spec.get("block_name"),
+                    "orientation": attached_edge,
+                    "rotation": (block_rotation + edge_rotation) % 360.0,
+                    "scale": {"x": 1, "y": 1, "z": 1},
+                    "insertion_point": {"x": machine_rect.x, "y": machine_rect.y, "z": 0},
+                    "machine": machine_rect.to_dict(),
+                }
+            )
+        return placements
 
     if attached_edge in {"north", "south"}:
         total_machine_span = (count * size["machine_w"]) + max(0, count - 1) * size["divider_gap"]
@@ -375,6 +575,9 @@ def _rect_wall_segments(rect: Rect, source: str, source_id: str, openings: Itera
             segment["source"] = source
             segment["source_id"] = source_id
             segment["edge"] = edge
+            segment["wall_type"] = "full_height"
+            segment["full_height"] = True
+            segment["height"] = DEFAULT_FULL_HEIGHT_WALL
             wall_segments.append(segment)
     return wall_segments
 
@@ -456,6 +659,7 @@ def generate_spa_layout(
     doors: List[Dict[str, Any]] = []
     lounge_openings: List[Dict[str, float]] = []
     room_openings_by_id: Dict[str, List[Dict[str, float]]] = {}
+    interior_walls_by_id: Dict[str, List[Dict[str, Any]]] = {}
     unplaced_rooms: List[Dict[str, Any]] = []
 
     for request in requests:
@@ -499,6 +703,7 @@ def generate_spa_layout(
         room_output = dict(request)
         room_output["attached_edge"] = attached_edge
         room_output["rect"] = room_rect.to_dict()
+        room_output["layout_pattern"] = size.get("layout_pattern", "linear")
         placed_rooms.append(room_output)
 
         room_open_edge = _opposite_edge(attached_edge)
@@ -523,6 +728,17 @@ def generate_spa_layout(
                 **door_segment,
             }
         )
+
+        if size.get("layout_pattern") == "two_wing":
+            _, local_partitions = _hydromassage_local_rects(size)
+            room_open_edge = _opposite_edge(attached_edge)
+            interior_walls_by_id[request["id"]] = [
+                {
+                    **_transform_local_segment(segment, room_rect, open_edge=room_open_edge),
+                    "source_id": request["id"],
+                }
+                for segment in local_partitions
+            ]
 
         placements.extend(
             _build_machine_placements(
@@ -561,6 +777,7 @@ def generate_spa_layout(
                 openings=room_openings_by_id.get(room["id"], []),
             )
         )
+        walls.extend(interior_walls_by_id.get(room["id"], []))
 
     result: Dict[str, Any] = {
         "shell": shell_rect.to_dict(),
