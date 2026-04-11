@@ -213,6 +213,7 @@ def api_spa_layout():
         rooms_input=sanitized["rooms"],
         room_specs=SPA_ROOM_SPECS,
         equipment=SPA_EQUIPMENT,
+        wall_thickness=sanitized["wall_thickness"],
         include_debug=sanitized["include_debug"],
     )
     result["input"] = sanitized

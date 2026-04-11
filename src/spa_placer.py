@@ -10,6 +10,7 @@ MIN_SUBROOM_DOOR_WIDTH = 24.0
 DEFAULT_SHELL = {"w": 1100.0, "d": 800.0}
 DEFAULT_FULL_HEIGHT_WALL = 120.0
 DEFAULT_PARTIAL_HEIGHT_WALL = 50.0
+DEFAULT_WALL_THICKNESS = 4.875
 DEFAULT_HALLWAY_WIDTH = 60.0
 DEFAULT_HALLWAY_LENGTH = 0.0
 DEFAULT_HALLWAY_POSITION = 0.0
@@ -144,6 +145,7 @@ def build_spa_defaults(spa_spec: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "shell": dict(DEFAULT_SHELL),
         "entry_edge": "south",
+        "wall_thickness": _float_or_default(global_rules.get("wall_thickness"), DEFAULT_WALL_THICKNESS, minimum=0.0),
         "lounge": {
             "auto_size": True,
             "w": _float_or_default(lounge_size.get("w"), 216.0, minimum=96.0),
@@ -247,6 +249,7 @@ def sanitize_spa_request(payload: Dict[str, Any], spa_spec: Dict[str, Any]) -> D
     return {
         "shell": {"w": shell_w, "d": shell_d},
         "entry_edge": _sanitize_edge(payload.get("entry_edge") if isinstance(payload, dict) else None),
+        "wall_thickness": _float_or_default(payload.get("wall_thickness") if isinstance(payload, dict) else None, defaults["wall_thickness"], minimum=0.0),
         "lounge": lounge,
         "hallway": hallway,
         "rooms": sanitized_rooms,
@@ -574,7 +577,13 @@ def _split_ranges(length: float, openings: Iterable[Tuple[float, float]]) -> Lis
     return segments
 
 
-def _rect_wall_segments(rect: Rect, source: str, source_id: str, openings: Iterable[Dict[str, float]]) -> List[Dict[str, Any]]:
+def _rect_wall_segments(
+    rect: Rect,
+    source: str,
+    source_id: str,
+    openings: Iterable[Dict[str, float]],
+    wall_thickness: float,
+) -> List[Dict[str, Any]]:
     openings_by_edge = {edge: [] for edge in EDGE_ORDER}
     for opening in openings:
         edge = opening.get("edge")
@@ -602,6 +611,7 @@ def _rect_wall_segments(rect: Rect, source: str, source_id: str, openings: Itera
             segment["wall_type"] = "full_height"
             segment["full_height"] = True
             segment["height"] = DEFAULT_FULL_HEIGHT_WALL
+            segment["thickness"] = wall_thickness
             wall_segments.append(segment)
     return wall_segments
 
@@ -877,6 +887,7 @@ def generate_spa_layout(
     rooms_input: Dict[str, Any],
     room_specs: Dict[str, Dict[str, Any]],
     equipment: Dict[str, Dict[str, Any]],
+    wall_thickness: float = DEFAULT_WALL_THICKNESS,
     include_debug: bool = True,
 ) -> Dict[str, Any]:
     shell_rect = Rect(0.0, 0.0, float(shell["w"]), float(shell["d"]))
@@ -1048,6 +1059,7 @@ def generate_spa_layout(
                     {
                         **_transform_local_segment(segment, room_rect, open_edge=room_open_edge),
                         "source_id": request["id"],
+                        "thickness": wall_thickness,
                     }
                     for segment in local_partitions
                 ]
@@ -1094,6 +1106,7 @@ def generate_spa_layout(
                 {
                     **_transform_local_segment(segment, room_rect, open_edge=room_open_edge),
                     "source_id": request["id"],
+                    "thickness": wall_thickness,
                 }
                 for segment in local_partitions
             ]
@@ -1157,10 +1170,10 @@ def generate_spa_layout(
     )
 
     walls: List[Dict[str, Any]] = []
-    walls.extend(_rect_wall_segments(shell_rect, source="shell", source_id="shell", openings=[]))
-    walls.extend(_rect_wall_segments(lounge_rect, source="room", source_id="lounge", openings=lounge_openings))
+    walls.extend(_rect_wall_segments(shell_rect, source="shell", source_id="shell", openings=[], wall_thickness=wall_thickness))
+    walls.extend(_rect_wall_segments(lounge_rect, source="room", source_id="lounge", openings=lounge_openings, wall_thickness=wall_thickness))
     if hallway_rect is not None:
-        walls.extend(_rect_wall_segments(hallway_rect, source="hallway", source_id="hallway", openings=hallway_openings))
+        walls.extend(_rect_wall_segments(hallway_rect, source="hallway", source_id="hallway", openings=hallway_openings, wall_thickness=wall_thickness))
     for room in placed_rooms[1:]:
         room_rect = Rect(**room["rect"])
         walls.extend(
@@ -1169,6 +1182,7 @@ def generate_spa_layout(
                 source="room",
                 source_id=room["id"],
                 openings=room_openings_by_id.get(room["id"], []),
+                wall_thickness=wall_thickness,
             )
         )
         walls.extend(interior_walls_by_id.get(room["id"], []))
@@ -1176,6 +1190,7 @@ def generate_spa_layout(
     result: Dict[str, Any] = {
         "shell": shell_rect.to_dict(),
         "entry_edge": entry_edge,
+        "wall_thickness": wall_thickness,
         "hallway": hallway,
         "lounge": lounge_room,
         "rooms": placed_rooms,

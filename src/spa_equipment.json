@@ -5,24 +5,24 @@
   },
   "hydromassage_bed": {
     "category": "spa_relaxation",
-    "block_name": null,
-    "block_angle_offset": 0,
+    "block_name": "HYDRO-BED",
+    "block_angle_offset": 90,
     "footprint": { "w": 34, "d": 84 },
     "clearance": { "front": 36, "back": 12, "left": 18, "right": 18 },
     "default_orientation": "north"
   },
   "hydromassage_lounger": {
     "category": "spa_relaxation",
-    "block_name": null,
-    "block_angle_offset": 0,
+    "block_name": "HM63C",
+    "block_angle_offset": 90,
     "footprint": { "w": 32, "d": 72 },
     "clearance": { "front": 36, "back": 12, "left": 18, "right": 18 },
     "default_orientation": "north"
   },
   "massage_chair_standard": {
     "category": "spa_relaxation",
-    "block_name": null,
-    "block_angle_offset": 0,
+    "block_name": "SmarteCarte Massage Chair",
+    "block_angle_offset": 90,
     "footprint": { "w": 34, "d": 60 },
     "clearance": { "front": 36, "back": 12, "left": 18, "right": 18 },
     "default_orientation": "north"
@@ -30,55 +30,55 @@
   "massage_chair_elite": {
     "category": "spa_relaxation",
     "block_name": null,
-    "block_angle_offset": 0,
+    "block_angle_offset": 90,
     "footprint": { "w": 38, "d": 66 },
     "clearance": { "front": 36, "back": 12, "left": 18, "right": 18 },
     "default_orientation": "north"
   },
   "tanning_bed": {
     "category": "spa_tanning",
-    "block_name": null,
-    "block_angle_offset": 0,
+    "block_name": "HM62A",
+    "block_angle_offset": 90,
     "footprint": { "w": 42, "d": 92 },
     "clearance": { "front": 42, "back": 18, "left": 24, "right": 24 },
     "default_orientation": "north"
   },
   "tanning_booth": {
     "category": "spa_tanning",
-    "block_name": null,
-    "block_angle_offset": 0,
+    "block_name": "HM62B_Up tanning",
+    "block_angle_offset": 90,
     "footprint": { "w": 48, "d": 60 },
     "clearance": { "front": 42, "back": 18, "left": 18, "right": 18 },
     "default_orientation": "north"
   },
   "hybrid_bed": {
     "category": "spa_tanning",
-    "block_name": null,
-    "block_angle_offset": 0,
+    "block_name": "Hybrid Light Bed HM62D",
+    "block_angle_offset": 90,
     "footprint": { "w": 46, "d": 90 },
     "clearance": { "front": 42, "back": 18, "left": 24, "right": 24 },
     "default_orientation": "north"
   },
   "hybrid_booth": {
     "category": "spa_tanning",
-    "block_name": null,
-    "block_angle_offset": 0,
+    "block_name": "HM62E Hybrid Tanning Booth",
+    "block_angle_offset": 90,
     "footprint": { "w": 48, "d": 66 },
     "clearance": { "front": 42, "back": 18, "left": 18, "right": 18 },
     "default_orientation": "north"
   },
   "total_body_enhancement_unit": {
     "category": "spa_wellness",
-    "block_name": null,
-    "block_angle_offset": 0,
+    "block_name": "BEAUTYANGEL",
+    "block_angle_offset": 90,
     "footprint": { "w": 46, "d": 72 },
     "clearance": { "front": 36, "back": 18, "left": 24, "right": 24 },
     "default_orientation": "north"
   },
   "wellness_pod": {
     "category": "spa_wellness",
-    "block_name": null,
-    "block_angle_offset": 0,
+    "block_name": "Hydro Wellness Pod",
+    "block_angle_offset": 90,
     "footprint": { "w": 40, "d": 84 },
     "clearance": { "front": 36, "back": 18, "left": 18, "right": 18 },
     "default_orientation": "north"
@@ -86,7 +86,7 @@
   "cryolounge": {
     "category": "spa_wellness",
     "block_name": null,
-    "block_angle_offset": 0,
+    "block_angle_offset": 90,
     "footprint": { "w": 38, "d": 78 },
     "clearance": { "front": 36, "back": 18, "left": 18, "right": 18 },
     "default_orientation": "north"

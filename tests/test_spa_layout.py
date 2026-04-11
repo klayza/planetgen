@@ -33,6 +33,7 @@ class SpaLayoutTests(unittest.TestCase):
         self.assertTrue(room_specs["hydromassage_room"]["fixed_room_count"])
         self.assertEqual(defaults["hallway"]["width"], 60)
         self.assertEqual(defaults["hallway"]["length"], 0)
+        self.assertAlmostEqual(defaults["wall_thickness"], 4.875)
 
     def test_default_layout_keeps_entry_edge_clear(self):
         _, equipment, room_specs, _, sanitized = load_spa_inputs()
@@ -44,6 +45,7 @@ class SpaLayoutTests(unittest.TestCase):
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
+            wall_thickness=sanitized["wall_thickness"],
             include_debug=True,
         )
         attached_edges = {room["attached_edge"] for room in result["rooms"] if room["room_type"] != "lounge"}
@@ -60,6 +62,7 @@ class SpaLayoutTests(unittest.TestCase):
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
+            wall_thickness=sanitized["wall_thickness"],
             include_debug=True,
         )
         rooms_by_type = {}
@@ -100,6 +103,8 @@ class SpaLayoutTests(unittest.TestCase):
         partial_walls = [wall for wall in result["walls"] if wall.get("source_id") == "hydromassage_room-1" and wall.get("wall_type") == "partial_height"]
         self.assertEqual(len(partial_walls), 4)
         self.assertTrue(all(not wall["full_height"] for wall in partial_walls))
+        self.assertTrue(all(abs(wall["thickness"] - 4.875) < 1e-6 for wall in partial_walls))
+        self.assertAlmostEqual(result["wall_thickness"], 4.875)
 
     def test_optional_rooms_default_to_zero_and_overrides_are_honored(self):
         spec, equipment, room_specs, _, _ = load_spa_inputs()
@@ -128,6 +133,7 @@ class SpaLayoutTests(unittest.TestCase):
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
+            wall_thickness=sanitized["wall_thickness"],
             include_debug=True,
         )
 
@@ -182,6 +188,7 @@ class SpaLayoutTests(unittest.TestCase):
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
+            wall_thickness=sanitized["wall_thickness"],
             include_debug=True,
         )
         self.assertTrue(result["hallway"]["enabled"])
@@ -212,6 +219,7 @@ class SpaLayoutTests(unittest.TestCase):
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
+            wall_thickness=sanitized["wall_thickness"],
             include_debug=True,
         )
         hydro_room = next(room for room in result["rooms"] if room["room_type"] == "hydromassage_room")
@@ -247,6 +255,7 @@ class SpaLayoutTests(unittest.TestCase):
             rooms_input=sanitized["rooms"],
             room_specs=room_specs,
             equipment=equipment,
+            wall_thickness=sanitized["wall_thickness"],
             include_debug=True,
         )
 

@@ -210,6 +210,133 @@
   )
 )
 
+(defun pg:abs (value)
+  (if (< value 0.0)
+    (- value)
+    value
+  )
+)
+
+(defun pg:make-point (x y)
+  (list x y 0.0)
+)
+
+(defun pg:ensure-layer (layer color /)
+  (if (not (tblsearch "LAYER" layer))
+    (entmakex
+      (list
+        '(0 . "LAYER")
+        '(100 . "AcDbSymbolTableRecord")
+        '(100 . "AcDbLayerTableRecord")
+        (cons 2 layer)
+        '(70 . 0)
+        (cons 62 color)
+        '(6 . "Continuous")
+      )
+    )
+  )
+  layer
+)
+
+(defun pg:add-line (x1 y1 x2 y2 layer / entity)
+  (pg:ensure-layer layer 7)
+  (setq entity
+    (entmakex
+      (list
+        '(0 . "LINE")
+        '(100 . "AcDbEntity")
+        (cons 8 layer)
+        '(100 . "AcDbLine")
+        (cons 10 (pg:make-point x1 y1))
+        (cons 11 (pg:make-point x2 y2))
+      )
+    )
+  )
+  entity
+)
+
+(defun pg:add-closed-polyline (points layer / data entity)
+  (pg:ensure-layer layer 7)
+  (setq data
+    (list
+      '(0 . "LWPOLYLINE")
+      '(100 . "AcDbEntity")
+      (cons 8 layer)
+      '(100 . "AcDbPolyline")
+      (cons 90 (length points))
+      '(70 . 1)
+    )
+  )
+  (foreach pt points
+    (setq data (append data (list (cons 10 (list (car pt) (cadr pt))))))
+  )
+  (setq entity (entmakex data))
+  entity
+)
+
+(defun pg:wall-layer (wall / wallType)
+  (setq wallType (pg:string (pg:json-get wall "wall_type") "full_height"))
+  (if (= wallType "partial_height")
+    "A-N-WALL LOW"
+    "A-N-WALL"
+  )
+)
+
+(defun pg:wall-rect-points (wall / x1 y1 x2 y2 minx maxx miny maxy thickness half)
+  (setq x1 (pg:number (pg:json-get wall "x1") 0.0))
+  (setq y1 (pg:number (pg:json-get wall "y1") 0.0))
+  (setq x2 (pg:number (pg:json-get wall "x2") 0.0))
+  (setq y2 (pg:number (pg:json-get wall "y2") 0.0))
+  (setq thickness (pg:number (pg:json-get wall "thickness") 4.875))
+  (setq half (/ thickness 2.0))
+  (setq minx (min x1 x2))
+  (setq maxx (max x1 x2))
+  (setq miny (min y1 y2))
+  (setq maxy (max y1 y2))
+  (cond
+    ((< (pg:abs (- x1 x2)) 0.0001)
+      (list
+        (list (- x1 half) miny)
+        (list (+ x1 half) miny)
+        (list (+ x1 half) maxy)
+        (list (- x1 half) maxy)
+      )
+    )
+    ((< (pg:abs (- y1 y2)) 0.0001)
+      (list
+        (list minx (- y1 half))
+        (list maxx (- y1 half))
+        (list maxx (+ y1 half))
+        (list minx (+ y1 half))
+      )
+    )
+    (T nil)
+  )
+)
+
+(defun pg:draw-wall (wall / layer points x1 y1 x2 y2)
+  (setq layer (pg:wall-layer wall))
+  (setq points (pg:wall-rect-points wall))
+  (if points
+    (pg:add-closed-polyline points layer)
+    (progn
+      (setq x1 (pg:number (pg:json-get wall "x1") 0.0))
+      (setq y1 (pg:number (pg:json-get wall "y1") 0.0))
+      (setq x2 (pg:number (pg:json-get wall "x2") 0.0))
+      (setq y2 (pg:number (pg:json-get wall "y2") 0.0))
+      (pg:add-line x1 y1 x2 y2 layer)
+    )
+  )
+)
+
+(defun pg:draw-door (door / x1 y1 x2 y2)
+  (setq x1 (pg:number (pg:json-get door "x1") 0.0))
+  (setq y1 (pg:number (pg:json-get door "y1") 0.0))
+  (setq x2 (pg:number (pg:json-get door "x2") 0.0))
+  (setq y2 (pg:number (pg:json-get door "y2") 0.0))
+  (pg:add-line x1 y1 x2 y2 "A-N-DOOR")
+)
+
 (defun pg:insert-placement (item / blockName point x y z sx sy sz rot itemType space insertObj)
   (setq itemType (pg:string (pg:json-get item "type") "UNKNOWN"))
   (setq blockName (pg:string (pg:json-get item "block_name") ""))
@@ -268,7 +395,7 @@
   )
 )
 
-(defun c:gen ( / path text data placements placementsPair placedCount skippedCount)
+(defun c:gen ( / path text data meta format placements placementsPair walls wallsPair doors doorsPair placedCount skippedCount wallCount doorCount)
   (setq path (getfiled "Select Planetgen layout JSON" "" "json" 16))
 
   (if (or (null path) (= path ""))
@@ -281,39 +408,104 @@
         (progn
           (pg:debug (strcat "Read " (itoa (strlen text)) " characters."))
           (setq data (pg:json-parse text))
-          (setq placementsPair (assoc "placements" data))
-          (setq placements (if placementsPair (cdr placementsPair) nil))
 
           (cond
             ((not (listp data))
               (pg:debug "Top-level JSON parse did not return an object list.")
               (prompt "\nUnable to parse JSON file.")
             )
-            ((null placementsPair)
-              (pg:debug "Top-level JSON object does not contain a placements key.")
-              (prompt "\nJSON parse completed, but placements was not found. Check the parser output.")
-            )
-            ((not (listp placements))
-              (pg:debug "placements exists, but is not a list.")
-              (prompt "\nJSON file does not contain a placements array.")
-            )
             (T
-              (pg:debug (strcat "Found " (itoa (length placements)) " placement entries."))
+              (setq meta (pg:json-get data "meta"))
+              (setq format (pg:string (pg:json-get meta "format") ""))
+              (setq placementsPair (assoc "placements" data))
+              (setq placements (if placementsPair (cdr placementsPair) nil))
+              (setq wallsPair (assoc "walls" data))
+              (setq walls (if wallsPair (cdr wallsPair) nil))
+              (setq doorsPair (assoc "doors" data))
+              (setq doors (if doorsPair (cdr doorsPair) nil))
               (setq placedCount 0)
               (setq skippedCount 0)
-              (foreach item placements
-                (if (pg:insert-placement item)
-                  (setq placedCount (1+ placedCount))
-                  (setq skippedCount (1+ skippedCount))
+              (setq wallCount 0)
+              (setq doorCount 0)
+
+              (if (= format "planetgen_spa_layout_export")
+                (progn
+                  (pg:debug "Detected spa layout export.")
+                  (if (listp walls)
+                    (progn
+                      (pg:debug (strcat "Found " (itoa (length walls)) " wall entries."))
+                      (foreach wall walls
+                        (if (pg:draw-wall wall)
+                          (setq wallCount (1+ wallCount))
+                        )
+                      )
+                    )
+                    (pg:debug "Spa JSON does not contain a walls array.")
+                  )
+                  (if (listp doors)
+                    (progn
+                      (pg:debug (strcat "Found " (itoa (length doors)) " door entries."))
+                      (foreach door doors
+                        (if (pg:draw-door door)
+                          (setq doorCount (1+ doorCount))
+                        )
+                      )
+                    )
+                    (pg:debug "Spa JSON does not contain a doors array.")
+                  )
+                  (if (listp placements)
+                    (progn
+                      (pg:debug (strcat "Found " (itoa (length placements)) " placement entries."))
+                      (foreach item placements
+                        (if (pg:insert-placement item)
+                          (setq placedCount (1+ placedCount))
+                          (setq skippedCount (1+ skippedCount))
+                        )
+                      )
+                    )
+                    (pg:debug "Spa JSON does not contain a placements array; continuing with geometry only.")
+                  )
+                  (prompt
+                    (strcat
+                      "\nGEN complete. Drew "
+                      (itoa wallCount)
+                      " walls, "
+                      (itoa doorCount)
+                      " doors, placed "
+                      (itoa placedCount)
+                      " blocks, skipped "
+                      (itoa skippedCount)
+                      "."
+                    )
+                  )
                 )
-              )
-              (prompt
-                (strcat
-                  "\nGEN complete. Placed "
-                  (itoa placedCount)
-                  ", skipped "
-                  (itoa skippedCount)
-                  "."
+                (cond
+                  ((null placementsPair)
+                    (pg:debug "Top-level JSON object does not contain a placements key.")
+                    (prompt "\nJSON parse completed, but placements was not found. Check the parser output.")
+                  )
+                  ((not (listp placements))
+                    (pg:debug "placements exists, but is not a list.")
+                    (prompt "\nJSON file does not contain a placements array.")
+                  )
+                  (T
+                    (pg:debug (strcat "Found " (itoa (length placements)) " placement entries."))
+                    (foreach item placements
+                      (if (pg:insert-placement item)
+                        (setq placedCount (1+ placedCount))
+                        (setq skippedCount (1+ skippedCount))
+                      )
+                    )
+                    (prompt
+                      (strcat
+                        "\nGEN complete. Placed "
+                        (itoa placedCount)
+                        ", skipped "
+                        (itoa skippedCount)
+                        "."
+                      )
+                    )
+                  )
                 )
               )
             )
