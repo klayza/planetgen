@@ -84,6 +84,14 @@ class SpaLayoutTests(unittest.TestCase):
         self.assertEqual(len(placements_by_room["hydromassage_room-1"]), 4)
         self.assertEqual(len(placements_by_room["massage_chair_room-1"]), 2)
         self.assertEqual(len(placements_by_room["hybrid_room-1"]), 1)
+        for placement in result["placements"]:
+            machine = placement["machine"]
+            self.assertAlmostEqual(placement["insertion_point"]["x"], machine["x"] + (machine["w"] / 2.0))
+            self.assertAlmostEqual(placement["insertion_point"]["y"], machine["y"] + (machine["d"] / 2.0))
+            self.assertEqual(placement["insertion_anchor"], "center")
+            self.assertEqual(placement["alignment_mode"], "bbox_center")
+            self.assertEqual(placement["cad_offset"], {"x": 0.0, "y": 0.0})
+            self.assertEqual(placement["scale"], {"x": 1.0, "y": 1.0, "z": 1.0})
 
         hydro_room = rooms_by_type["hydromassage_room"][0]
         hydro_rect = hydro_room["rect"]

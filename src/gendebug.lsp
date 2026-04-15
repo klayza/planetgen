@@ -4,6 +4,17 @@
   (if (= (type value) 'STR) value fallback)
 )
 
+(defun gd:number (value fallback)
+  (if (numberp value) value fallback)
+)
+
+(defun gd:abs (value)
+  (if (< value 0.0)
+    (- value)
+    value
+  )
+)
+
 (defun gd:safe-get (obj method fallback / result)
   (setq result (vl-catch-all-apply method (list obj)))
   (if (vl-catch-all-error-p result)
@@ -28,6 +39,65 @@
     (T
       "Block=<unknown>"
     )
+  )
+)
+
+(defun gd:com-array->list (value)
+  (cond
+    ((= (type value) 'VARIANT)
+      (vlax-safearray->list (vlax-variant-value value))
+    )
+    (T
+      (vlax-safearray->list value)
+    )
+  )
+)
+
+(defun gd:get-bounding-box-points (obj / minPt maxPt)
+  (vla-GetBoundingBox obj 'minPt 'maxPt)
+  (list
+    (gd:com-array->list minPt)
+    (gd:com-array->list maxPt)
+  )
+)
+
+(defun gd:fmt-num (value)
+  (rtos (gd:number value 0.0) 2 3)
+)
+
+(defun gd:fmt-pt2 (pt)
+  (strcat "(" (gd:fmt-num (car pt)) ", " (gd:fmt-num (cadr pt)) ")")
+)
+
+(defun gd:rotation-degrees (obj / radians)
+  (setq radians (gd:safe-get obj 'vla-get-Rotation 0.0))
+  (* 180.0 (/ radians pi))
+)
+
+(defun gd:insert-debug-lines (obj / ins bbox minPt maxPt centerPt width depth rawName effectiveName)
+  (setq ins (vlax-get obj 'InsertionPoint))
+  (setq bbox (gd:get-bounding-box-points obj))
+  (setq minPt (car bbox))
+  (setq maxPt (cadr bbox))
+  (setq centerPt
+    (list
+      (/ (+ (car minPt) (car maxPt)) 2.0)
+      (/ (+ (cadr minPt) (cadr maxPt)) 2.0)
+    )
+  )
+  (setq width (gd:abs (- (car maxPt) (car minPt))))
+  (setq depth (gd:abs (- (cadr maxPt) (cadr minPt))))
+  (setq rawName (gd:safe-get obj 'vla-get-Name ""))
+  (setq effectiveName (gd:safe-get obj 'vla-get-EffectiveName rawName))
+  (list
+    (strcat "[GENCAL] Block=" effectiveName)
+    (strcat "[GENCAL] RawName=" rawName)
+    (strcat "[GENCAL] Insertion=" (gd:fmt-pt2 ins))
+    (strcat "[GENCAL] Rotation=" (gd:fmt-num (gd:rotation-degrees obj)) " deg")
+    (strcat "[GENCAL] BBoxMin=" (gd:fmt-pt2 minPt))
+    (strcat "[GENCAL] BBoxMax=" (gd:fmt-pt2 maxPt))
+    (strcat "[GENCAL] BBoxCenter=" (gd:fmt-pt2 centerPt))
+    (strcat "[GENCAL] BBoxSize=" (gd:fmt-num width) " x " (gd:fmt-num depth))
   )
 )
 
@@ -79,6 +149,29 @@
       )
     )
   )
+)
+
+(defun c:gencal ( / ename edata entityType obj lines)
+  (prompt "\nSelect one inserted block to inspect.")
+  (setq ename (car (entsel)))
+  (if (null ename)
+    (prompt "\nNo entity selected.")
+    (progn
+      (setq edata (entget ename))
+      (setq entityType (gd:string (cdr (assoc 0 edata)) ""))
+      (if (/= entityType "INSERT")
+        (prompt "\nSelected entity is not a block insert.")
+        (progn
+          (setq obj (vlax-ename->vla-object ename))
+          (setq lines (gd:insert-debug-lines obj))
+          (foreach line lines
+            (prompt (strcat "\n" line))
+          )
+        )
+      )
+    )
+  )
+  (princ)
 )
 
 (defun c:gendebug ( / ss idx ename count)

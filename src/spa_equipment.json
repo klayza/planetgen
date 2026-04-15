@@ -7,6 +7,9 @@
     "category": "spa_relaxation",
     "block_name": "HYDRO-BED",
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 34, "d": 84 },
     "clearance": { "front": 36, "back": 12, "left": 18, "right": 18 },
     "default_orientation": "north"
@@ -15,6 +18,9 @@
     "category": "spa_relaxation",
     "block_name": "HM63C",
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 32, "d": 72 },
     "clearance": { "front": 36, "back": 12, "left": 18, "right": 18 },
     "default_orientation": "north"
@@ -23,6 +29,9 @@
     "category": "spa_relaxation",
     "block_name": "SmarteCarte Massage Chair",
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 34, "d": 60 },
     "clearance": { "front": 36, "back": 12, "left": 18, "right": 18 },
     "default_orientation": "north"
@@ -31,6 +40,9 @@
     "category": "spa_relaxation",
     "block_name": null,
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 38, "d": 66 },
     "clearance": { "front": 36, "back": 12, "left": 18, "right": 18 },
     "default_orientation": "north"
@@ -39,6 +51,9 @@
     "category": "spa_tanning",
     "block_name": "HM62A",
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 42, "d": 92 },
     "clearance": { "front": 42, "back": 18, "left": 24, "right": 24 },
     "default_orientation": "north"
@@ -47,6 +62,9 @@
     "category": "spa_tanning",
     "block_name": "HM62B_Up tanning",
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 48, "d": 60 },
     "clearance": { "front": 42, "back": 18, "left": 18, "right": 18 },
     "default_orientation": "north"
@@ -55,6 +73,9 @@
     "category": "spa_tanning",
     "block_name": "Hybrid Light Bed HM62D",
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 46, "d": 90 },
     "clearance": { "front": 42, "back": 18, "left": 24, "right": 24 },
     "default_orientation": "north"
@@ -63,6 +84,9 @@
     "category": "spa_tanning",
     "block_name": "HM62E Hybrid Tanning Booth",
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 48, "d": 66 },
     "clearance": { "front": 42, "back": 18, "left": 18, "right": 18 },
     "default_orientation": "north"
@@ -71,6 +95,9 @@
     "category": "spa_wellness",
     "block_name": "BEAUTYANGEL",
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 46, "d": 72 },
     "clearance": { "front": 36, "back": 18, "left": 24, "right": 24 },
     "default_orientation": "north"
@@ -79,6 +106,9 @@
     "category": "spa_wellness",
     "block_name": "Hydro Wellness Pod",
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 40, "d": 84 },
     "clearance": { "front": 36, "back": 18, "left": 18, "right": 18 },
     "default_orientation": "north"
@@ -87,6 +117,9 @@
     "category": "spa_wellness",
     "block_name": null,
     "block_angle_offset": 270,
+    "cad_alignment_mode": "bbox_center",
+    "cad_scale": { "x": 1, "y": 1, "z": 1 },
+    "cad_offset": { "x": 0, "y": 0 },
     "footprint": { "w": 38, "d": 78 },
     "clearance": { "front": 36, "back": 18, "left": 18, "right": 18 },
     "default_orientation": "north"

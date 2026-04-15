@@ -463,6 +463,18 @@ def _build_machine_placements(
     count = room["machine_count"]
     machine_type = room["variant"]
     block_rotation = _float_or_default(equipment_spec.get("block_angle_offset"), 0.0, minimum=0.0)
+    cad_scale_raw = equipment_spec.get("cad_scale") or {}
+    cad_offset_raw = equipment_spec.get("cad_offset") or {}
+    cad_scale = {
+        "x": _float_or_default(cad_scale_raw.get("x"), 1.0, minimum=0.0001),
+        "y": _float_or_default(cad_scale_raw.get("y"), 1.0, minimum=0.0001),
+        "z": _float_or_default(cad_scale_raw.get("z"), 1.0, minimum=0.0001),
+    }
+    cad_offset = {
+        "x": _float_or_default(cad_offset_raw.get("x"), 0.0),
+        "y": _float_or_default(cad_offset_raw.get("y"), 0.0),
+    }
+    cad_alignment_mode = equipment_spec.get("cad_alignment_mode") if isinstance(equipment_spec.get("cad_alignment_mode"), str) else "bbox_center"
     open_edge = _opposite_edge(attached_edge)
     edge_rotation = {
         "north": 180.0,
@@ -485,8 +497,11 @@ def _build_machine_placements(
                     "block_name": equipment_spec.get("block_name"),
                     "orientation": attached_edge,
                     "rotation": (block_rotation + edge_rotation) % 360.0,
-                    "scale": {"x": 1, "y": 1, "z": 1},
-                    "insertion_point": {"x": machine_rect.x, "y": machine_rect.y, "z": 0},
+                    "scale": dict(cad_scale),
+                    "insertion_point": {"x": machine_rect.x + (machine_rect.w / 2.0), "y": machine_rect.y + (machine_rect.d / 2.0), "z": 0},
+                    "insertion_anchor": "center",
+                    "alignment_mode": cad_alignment_mode,
+                    "cad_offset": dict(cad_offset),
                     "machine": machine_rect.to_dict(),
                 }
             )
@@ -508,8 +523,11 @@ def _build_machine_placements(
                     "block_name": equipment_spec.get("block_name"),
                     "orientation": attached_edge,
                     "rotation": (block_rotation + edge_rotation) % 360.0,
-                    "scale": {"x": 1, "y": 1, "z": 1},
-                    "insertion_point": {"x": machine_rect.x, "y": machine_rect.y, "z": 0},
+                    "scale": dict(cad_scale),
+                    "insertion_point": {"x": machine_rect.x + (machine_rect.w / 2.0), "y": machine_rect.y + (machine_rect.d / 2.0), "z": 0},
+                    "insertion_anchor": "center",
+                    "alignment_mode": cad_alignment_mode,
+                    "cad_offset": dict(cad_offset),
                     "machine": machine_rect.to_dict(),
                 }
             )
@@ -529,8 +547,11 @@ def _build_machine_placements(
                     "block_name": equipment_spec.get("block_name"),
                     "orientation": attached_edge,
                     "rotation": (block_rotation + edge_rotation) % 360.0,
-                    "scale": {"x": 1, "y": 1, "z": 1},
-                    "insertion_point": {"x": machine_rect.x, "y": machine_rect.y, "z": 0},
+                    "scale": dict(cad_scale),
+                    "insertion_point": {"x": machine_rect.x + (machine_rect.w / 2.0), "y": machine_rect.y + (machine_rect.d / 2.0), "z": 0},
+                    "insertion_anchor": "center",
+                    "alignment_mode": cad_alignment_mode,
+                    "cad_offset": dict(cad_offset),
                     "machine": machine_rect.to_dict(),
                 }
             )
