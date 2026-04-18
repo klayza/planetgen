@@ -337,11 +337,19 @@
   (pg:add-line x1 y1 x2 y2 "A-N-DOOR")
 )
 
+(defun pg:com-array->list (value / unwrapped)
+  (setq unwrapped (vl-catch-all-apply 'vlax-variant-value (list value)))
+  (if (vl-catch-all-error-p unwrapped)
+    (vlax-safearray->list value)
+    (vlax-safearray->list unwrapped)
+  )
+)
+
 (defun pg:get-bounding-box-points (obj / minPt maxPt)
   (vla-GetBoundingBox obj 'minPt 'maxPt)
   (list
-    (vlax-safearray->list (vlax-variant-value minPt))
-    (vlax-safearray->list (vlax-variant-value maxPt))
+    (pg:com-array->list minPt)
+    (pg:com-array->list maxPt)
   )
 )
 

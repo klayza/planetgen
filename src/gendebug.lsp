@@ -42,14 +42,11 @@
   )
 )
 
-(defun gd:com-array->list (value)
-  (cond
-    ((= (type value) 'VARIANT)
-      (vlax-safearray->list (vlax-variant-value value))
-    )
-    (T
-      (vlax-safearray->list value)
-    )
+(defun gd:com-array->list (value / unwrapped)
+  (setq unwrapped (vl-catch-all-apply 'vlax-variant-value (list value)))
+  (if (vl-catch-all-error-p unwrapped)
+    (vlax-safearray->list value)
+    (vlax-safearray->list unwrapped)
   )
 )
 
